@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TechPulse AutoMigrate</title>
+<meta name="description" content="TechPulse repair-shop database: schema, Appendix B queries with verified outputs, and a one-command SQL Server migrate/seed/query runner.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: workshop job-card — a sticky route sheet on the left, numbered job cards (queries) on the right. */
+:root{
+  --bg:#e9eef0; --panel:#f8fafb; --ink:#14212b; --muted:#5a6b76; --line:#c9d4da;
+  --esd:#0d6b80; --esd-soft:#d4e8ed; --tag:#b86200; --ok:#1d7a45; --ok-soft:#dcefe3; --no:#b3261e; --no-soft:#f6dedb;
+  --code-bg:#13202a; --code-fg:#dbe6ec; --k:#7cc7dc; --s:#e6b673; --n:#c3a6f0; --c:#7f939f;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f171d; --panel:#16222a; --ink:#e3ebef; --muted:#93a5b0; --line:#2a3943;
+  --esd:#5bb8cf; --esd-soft:#173540; --tag:#f0a24a; --ok:#5cc58a; --ok-soft:#143524; --no:#f08a80; --no-soft:#3c1c1a;
+  --code-bg:#0a1116; --code-fg:#d6e2e8; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f171d; --panel:#16222a; --ink:#e3ebef; --muted:#93a5b0; --line:#2a3943;
+  --esd:#5bb8cf; --esd-soft:#173540; --tag:#f0a24a; --ok:#5cc58a; --ok-soft:#143524; --no:#f08a80; --no-soft:#3c1c1a;
+  --code-bg:#0a1116; --code-fg:#d6e2e8; color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 var(--body)}
+a{color:var(--esd)}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--esd);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 64px;display:grid;grid-template-columns:200px minmax(0,1fr);gap:40px}
+nav{position:sticky;top:24px;align-self:start;font-size:13px}
+nav p{font:600 12px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+nav ol{list-style:none;margin:0 0 24px;padding:0;display:grid;gap:2px}
+nav a{display:block;padding:4px 8px;border-left:2px solid var(--line);color:var(--ink);text-decoration:none}
+nav a:hover{border-left-color:var(--esd);color:var(--esd)}
+main{min-width:0;display:grid;grid-template-columns:minmax(0,1fr);gap:56px}
+.hero{display:grid;gap:14px}
+.eyebrow{font:600 13px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--tag)}
+h1{font:700 clamp(44px,8vw,84px)/.92 var(--display);letter-spacing:-.01em;margin:0;text-wrap:balance}
+h1 span{color:var(--esd)}
+.lede{max-width:64ch;font-size:17px;color:var(--muted);margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.chip{font:500 12px/1 var(--mono);padding:7px 10px;border:1px solid var(--line);border-radius:3px;background:var(--panel)}
+.chip b{color:var(--ok)}
+h2{font:700 34px/1 var(--display);margin:0 0 6px;text-wrap:balance}
+h2 + .sub{color:var(--muted);margin:0 0 20px;max-width:64ch}
+h3{font:600 20px/1.2 var(--display);margin:0 0 12px;display:flex;align-items:center;gap:10px}
+.req{font:500 11px/1 var(--mono);padding:4px 6px;background:var(--esd-soft);color:var(--esd);border-radius:2px}
+.grp{margin-bottom:26px}
+.rels{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.rel{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:12px 14px}
+.rel h4{font:600 15px/1 var(--mono);margin:0 0 10px;color:var(--esd)}
+.rel ul{list-style:none;margin:0;padding:0;display:grid;gap:3px;font-size:13px}
+.rel li{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px}
+.cn{font-family:var(--mono)}
+.ct{color:var(--muted);font:12px var(--mono)}
+.pk,.fk{font:500 10px/1 var(--mono);padding:3px 5px;border-radius:2px;letter-spacing:.03em}
+.pk{background:var(--tag);color:var(--panel)}
+.fk{border:1px solid var(--line);color:var(--muted)}
+.changes{display:grid;gap:10px;margin:0;padding:0;list-style:none;counter-reset:c}
+.changes li{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:12px 14px 12px 46px;position:relative;max-width:80ch}
+.changes li::before{counter-increment:c;content:counter(c);position:absolute;left:14px;top:12px;font:700 18px/1 var(--display);color:var(--tag)}
+.q{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:22px clamp(14px,3vw,28px);display:grid;grid-template-columns:minmax(0,1fr);gap:12px;min-width:0}
+.q header{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px dashed var(--line);padding-bottom:10px}
+.qn{font:700 40px/1 var(--display);color:var(--esd)}
+.rc{font:500 12px/1 var(--mono);padding:6px 8px;background:var(--ok-soft);color:var(--ok);border-radius:3px}
+.ask{margin:0;font-weight:500;max-width:80ch}
+.lbl{font:600 12px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:8px 0 0}
+pre{margin:0;overflow-x:auto;border-radius:4px;font:12.5px/1.55 var(--mono)}
+pre.sql{background:var(--code-bg);color:var(--code-fg);padding:14px 16px}
+.k{color:var(--k)} .s{color:var(--s)} .n{color:var(--n)} .c{color:var(--c);font-style:italic}
+pre.res{background:var(--bg);border:1px solid var(--line);padding:12px 14px}
+pre.err{background:var(--no-soft);color:var(--no);border-color:transparent}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:4px}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th{font:600 11px/1.2 var(--display);letter-spacing:.08em;text-transform:uppercase;text-align:left;color:var(--muted);background:var(--bg);padding:9px 10px;white-space:nowrap}
+td{padding:7px 10px;border-top:1px solid var(--line);vertical-align:top}
+td:last-child{overflow-wrap:anywhere}
+.num{text-align:right;font-family:var(--mono)}
+.why p:last-child{margin:6px 0 0;max-width:75ch}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.step{border-radius:4px;padding:12px 14px;display:grid;gap:2px}
+.step b{font-weight:600;font-size:14px}
+.step span{font:700 22px/1.1 var(--display);letter-spacing:.04em}
+.step small{font:12px var(--mono);opacity:.85}
+.ok{background:var(--ok-soft);color:var(--ok)} .no{background:var(--no-soft);color:var(--no)}
+details{border:1px solid var(--line);border-radius:4px;background:var(--panel)}
+details + details{margin-top:8px}
+summary{cursor:pointer;padding:10px 14px;font-weight:500}
+details[open] summary{border-bottom:1px solid var(--line)}
+details > pre,details > .lbl{margin:10px 14px}
+details > pre.res{margin-bottom:14px}
+.run{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:12px}
+.cmd{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:14px;display:grid;gap:6px;min-width:0}
+.cmd code{font:500 13px var(--mono);color:var(--esd)}
+.cmd p{margin:0;color:var(--muted);font-size:14px}
+.warn{border-left:3px solid var(--tag);padding:8px 14px;background:var(--panel);max-width:80ch}
+footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:18px}
+@media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr);gap:24px}nav{position:static}nav ol{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav aria-label="Sections">
+  <p>Route sheet</p>
+  <ol>
+    <li><a href="#top">Overview</a></li>
+    <li><a href="#run">Run it</a></li>
+    <li><a href="#schema">Schema</a></li>
+    <li><a href="#changes">Design changes</a></li>
+  </ol>
+  <p>Appendix B</p>
+  <ol>
+    <li><a href="#q1">Q1 · Under 180 min</a></li>
+    <li><a href="#q2">Q2 · Revenue split</a></li>
+    <li><a href="#q3">Q3 · Spec mismatch</a></li>
+    <li><a href="#q4">Q4 · Water damage</a></li>
+    <li><a href="#q5">Q5 · Stock guard</a></li>
+    <li><a href="#q6">Q6 · Bulk orders</a></li>
+  </ol>
+  <p>More</p>
+  <ol>
+    <li><a href="#checks">Integrity checks</a></li>
+    <li><a href="#practice">Practice queries</a></li>
+  </ol>
+</nav>
+<main>
+<section class="hero" id="top">
+  <span class="eyebrow">SC2207 · Lab 5 · TEL3 Team 3</span>
+  <h1>TechPulse <span>AutoMigrate</span></h1>
+  <p class="lede">A SQL Server database for TechPulse, an authorised repair centre for phones, tablets, watches and audio wearables. It tracks every device from intake to warranty claim. One command wipes, rebuilds, seeds and queries the whole thing.</p>
+  <div class="chips">
+    <span class="chip">17 tables</span>
+    <span class="chip">45 service tickets · 70 work sessions</span>
+    <span class="chip">40 bills · 15 warranty claims</span>
+    <span class="chip"><b>23/23</b> server checks passed · Microsoft SQL Server 2022 RTM 16.0.1000.6 · 2026-10-24</span>
+  </div>
+</section>
+
+<section id="run">
+  <h2>Run it</h2>
+  <p class="sub">Python + pyodbc against the NTU lab server. Copy <code>config.example.py</code> to <code>config.py</code> first. The password is prompted for, never stored.</p>
+  <div class="run">
+    <div class="cmd"><code>python run.py test</code><p>Check the connection to the server and team database.</p></div>
+    <div class="cmd"><code>python run.py all</code><p>Drop → create 17 tables → seed → create trigger.</p></div>
+    <div class="cmd"><code>python run.py demo</code><p>Walk through Q1–Q6: show the SQL, run it, show the results, wait for Enter.</p></div>
+    <div class="cmd"><code>python run.py export</code><p>Write every result and table to <code>outputs/</code> for the report.</p></div>
+  </div>
+  <p class="warn"><strong>Careful:</strong> <code>all</code> drops every table in the configured database, not just TechPulse's.</p>
+</section>
+
+<section id="schema">
+  <h2>Schema</h2>
+  <p class="sub">Relations grouped by the requirement they serve. All are in BCNF (see the Lab 3 analysis).</p>
+  <div class="grp"><h3><span class="req">Req 1</span>Intake &amp; front desk</h3><div class="rels"><article class="rel"><h4>CLIENT</h4><ul><li><span class="cn">Client_ID</span><span class="ct">int</span><span class="pk">PK</span></li><li><span class="cn">Name</span><span class="ct">varchar(100)</span></li><li><span class="cn">Address</span><span class="ct">varchar(200)</span></li><li><span class="cn">Type</span><span class="ct">varchar(10)</span></li><li><span class="cn">Contact_Details</span><span class="ct">varchar(20)</span></li><li><span class="cn">Email</span><span class="ct">varchar(100)</span></li><li><span class="cn">Account_Creation_Date</span><span class="ct">date</span></li></ul></article><article class="rel"><h4>DEVICE_TYPE</h4><ul><li><span class="cn">Model_ID</span><span class="ct">int</span><span class="pk">PK</span></li><li><span class="cn">Model_Name</span><span class="ct">varchar(60)</span></li><li><span class="cn">Device_Category</span><span class="ct">varchar(20)</span></li><li><span class="cn">Manufacturer_Name</span><span class="ct">varchar(40)</span></li><li><span class="cn">Manufacturer_Warranty_Duration</span><span class="ct">int</span></li></ul></article><article class="rel"><h4>DEVICE</h4><ul><li><span class="cn">Device_ID</span><span class="ct">int</span><span class="pk">PK</span></li><li><span class="cn">IMEI_Serial_No</span><span class="ct">varchar(20)</span></li><li><span class="cn">Description</span><span class="ct">varchar(200)</span></li><li><span class="cn">Colour</span><span class="ct">varchar(30)</span></li><li><span class="cn">Storage_Capacity</span><span class="ct">int</span></li><li><span class="cn">Model_ID</span><span class="ct">int</span><span class="fk" title="references DEVICE_TYPE">FK → DEVICE_TYPE</span></li><li><span class="cn">Client_ID</span><span class="ct">int</span><span class="fk" title="references CLIENT">FK → CLIENT</span></li></ul></article></div></div>
+<div class="grp"><h3><span class="req">Req 2</span>Workshop &amp; assessment</h3><div class="rels"><article class="rel"><h4>WORKSTATION</h4><ul><li><span class="cn">Workstation_ID</span><span class="ct">int</span><span class="pk">PK</span></li><li><span class="cn">Workstation_Type</span><span class="ct">varchar(40)</span></li><li><span class="cn">Status</span><span class="ct">varchar(12)</span></li></ul></article><article class="rel"><h4>TECHNICIAN</h4><ul><li><span class="cn">Technician_ID</span><span class="ct">int</span><span class="pk">PK</span></li><li><span class="cn">Name</span><span class="ct">varchar(100)</span></li><li><span class="cn">Primary_Specialisation</span><span class="ct">varchar(20)</span></li><li><span class="cn">Certification_Level</span><span class="ct">varchar(10)</span></li><li><span class="cn">Standard_Hourly_Billing_Rate</span><span class="ct">decimal(6,2)</span></li></ul></article><article class="rel"><h4>SERVICE_TICKET</h4><ul><li><span class="cn">Service_Ticket_ID</span><span class="ct">int</span><span class="pk">PK</span></li><li><span class="cn">Problem_Desc</span><span class="ct">varchar(200)</span></li><li><span class="cn">Status</span><span class="ct">varchar(20)</span></li><li><span class="cn">Date_Received</span><span class="ct">datetime</span></li><li><span class="cn">Estimated_Repair_Cost</span><span class="ct">decimal(10,2)</span></li><li><span class="cn">Device_ID</span><span class="ct">int</span><span class="fk" title="references DEVICE">FK → DEVICE</span></li><li><span class="cn">Workstation_ID</span><span class="ct">int</span><span class="fk" title="references WORKSTATION">FK → WORKSTATION</span></li><li><span class="cn">Warranty_Claim_ID</span><span class="ct">int</span></li></ul></article><article class="rel"><h4>DIAGNOSTIC_ASSESSMENT</h4><ul><li><span class="cn">Assessment_ID</span><span class="ct">int</span><span class="pk">PK</span></li><li><span class="cn">Health_Results</span><span class="ct">varchar(30)</span></li><li><span class="cn">Diagnostic_Error_Code</span><span class="ct">varchar(20)</span></li><li><span class="cn">Action</span><span class="ct">varchar(200)</span></li><li><span class="cn">Service_Ticket_ID</span><span class="ct">int</span><span class="fk" title="references SERVICE_TICKET">FK → SERVICE_TICKET</span></li><li><span class="cn">Technician_ID</span><span class="ct">int</span><span class="fk" title="references TECHNICIAN">FK → TECHNICIAN</span></li></ul></article></div></div>
+<div class="grp"><h3><span class="req">Req 3</span>Repair execution &amp; labour</h3><div class="rels"><article class="rel"><h4>REPAIR_PROCEDURE</h4><ul><li><span class="cn">Procedure_ID</span><span class="ct">int</span><span class="pk">PK</span></li><li><span class="cn">Procedure_Type</span><span class="ct">varchar(20)</span></li><li><span class="cn">Procedure_Details</span><span class="ct">varchar(200)</span></li><li><span class="cn">Total_Time_Spent</span><span class="ct">int</span></li><li><span class="cn">Service_Ticket_ID</span><span class="ct">int</span><span class="fk" title="references SERVICE_TICKET">FK → SERVICE_TICKET</span></li></ul></article><article class="rel"><h4>WORK_SESSION</h4><ul><li><span class="cn">Session_ID</span><span class="ct">int</span><span class="pk">PK</span></li><li><span class="cn">Start_Time</span><span class="ct">datetime</span></li><li><span class="cn">End_Time</span><span class="ct">datetime</span></li><li><span class="cn">Billable_Time</span><span class="ct">int</span></li><li><span class="cn">Procedure_ID</span><span class="ct">int</span><span class="fk" title="references REPAIR_PROCEDURE">FK → REPAIR_PROCEDURE</span></li><li><span class="cn">Technician_ID</span><span class="ct">int</span><span class="fk" title="references TECHNICIAN">FK → TECHNICIAN</span></li></ul></article></div></div>
+<div class="grp"><h3><span class="req">Req 4</span>Parts inventory &amp; restocking</h3><div class="rels"><article class="rel"><h4>PART</h4><ul><li><span class="cn">Part_Code</span><span class="ct">varchar(12)</span><span class="pk">PK</span></li><li><span class="cn">Item_Description</span><span class="ct">varchar(100)</span></li><li><span class="cn">Selling_Price</span><span class="ct">decimal(10,2)</span></li><li><span class="cn">Minimum_Reorder_Quantity</span><span class="ct">int</span></li><li><span class="cn">Part_Category</span><span class="ct">varchar(20)</span></li><li><span class="cn">Current_Quantity</span><span class="ct">int</span></li></ul></article><article class="rel"><h4>PART_ALLOCATION</h4><ul><li><span class="cn">Allocated_ID</span><span class="ct">int</span><span class="pk">PK</span></li><li><span class="cn">Procedure_ID</span><span class="ct">int</span><span class="pk">PK</span><span class="fk" title="references REPAIR_PROCEDURE">FK → REPAIR_PROCEDURE</span></li><li><span class="cn">Quantity_Allocated</span><span class="ct">int</span></li><li><span class="cn">Locked_Unit_Price</span><span class="ct">decimal(10,2)</span></li><li><span class="cn">Allocated_Time</span><span class="ct">datetime</span></li><li><span class="cn">Part_Code</span><span class="ct">varchar(12)</span><span class="fk" title="references PART">FK → PART</span></li></ul></article><article class="rel"><h4>VENDOR</h4><ul><li><span class="cn">Vendor_ID</span><span class="ct">int</span><span class="pk">PK</span></li><li><span class="cn">Name</span><span class="ct">varchar(100)</span></li><li><span class="cn">Phone_Number</span><span class="ct">varchar(20)</span></li><li><span class="cn">Email</span><span class="ct">varchar(100)</span></li><li><span class="cn">Agreed_Payment_Terms</span><span class="ct">varchar(10)</span></li></ul></article><article class="rel"><h4>PURCHASE_ORDER</h4><ul><li><span class="cn">Order_ID</span><span class="ct">int</span><span class="pk">PK</span></li><li><span class="cn">Order_Date</span><span class="ct">date</span></li><li><span class="cn">Order_Status</span><span class="ct">varchar(10)</span></li><li><span class="cn">Expected_Delivery_Date</span><span class="ct">date</span></li><li><span class="cn">Total_Order_Cost</span><span class="ct">decimal(12,2)</span></li><li><span class="cn">Vendor_ID</span><span class="ct">int</span><span class="fk" title="references VENDOR">FK → VENDOR</span></li></ul></article><article class="rel"><h4>RESTOCK_REQUEST</h4><ul><li><span class="cn">Req_ID</span><span class="ct">int</span><span class="pk">PK</span></li><li><span class="cn">Req_Date</span><span class="ct">date</span></li><li><span class="cn">Quantity_Req</span><span class="ct">int</span></li><li><span class="cn">Part_Code</span><span class="ct">varchar(12)</span><span class="fk" title="references PART">FK → PART</span></li></ul></article><article class="rel"><h4>CREATES</h4><ul><li><span class="cn">Req_ID</span><span class="ct">int</span><span class="pk">PK</span><span class="fk" title="references RESTOCK_REQUEST">FK → RESTOCK_REQUEST</span></li><li><span class="cn">Order_ID</span><span class="ct">int</span><span class="pk">PK</span><span class="fk" title="references PURCHASE_ORDER">FK → PURCHASE_ORDER</span></li></ul></article></div></div>
+<div class="grp"><h3><span class="req">Req 5</span>Billing &amp; after-sales</h3><div class="rels"><article class="rel"><h4>BILLING_STATEMENT</h4><ul><li><span class="cn">Bill_ID</span><span class="ct">int</span><span class="pk">PK</span></li><li><span class="cn">Billing_Date</span><span class="ct">date</span></li><li><span class="cn">Total_Component_Costs</span><span class="ct">decimal(10,2)</span></li><li><span class="cn">Total_Labour_Charges</span><span class="ct">decimal(10,2)</span></li><li><span class="cn">Tax_Rates</span><span class="ct">decimal(5,2)</span></li><li><span class="cn">Discount</span><span class="ct">decimal(10,2)</span></li><li><span class="cn">Balance_Due</span><span class="ct">decimal(10,2)</span></li><li><span class="cn">Payment_Status</span><span class="ct">varchar(10)</span></li><li><span class="cn">Service_Ticket_ID</span><span class="ct">int</span><span class="fk" title="references SERVICE_TICKET">FK → SERVICE_TICKET</span></li></ul></article><article class="rel"><h4>WARRANTY_CLAIM</h4><ul><li><span class="cn">Claim_ID</span><span class="ct">int</span><span class="pk">PK</span></li><li><span class="cn">Fault_Description</span><span class="ct">varchar(200)</span></li><li><span class="cn">Review_Status</span><span class="ct">varchar(15)</span></li><li><span class="cn">Approved_Refund_Value</span><span class="ct">decimal(10,2)</span></li><li><span class="cn">Requested_Refund_Value</span><span class="ct">decimal(10,2)</span></li><li><span class="cn">Approved_Remedy</span><span class="ct">varchar(100)</span></li><li><span class="cn">Submission_Date</span><span class="ct">date</span></li><li><span class="cn">Bill_ID</span><span class="ct">int</span><span class="fk" title="references BILLING_STATEMENT">FK → BILLING_STATEMENT</span></li></ul></article></div></div>
+</section>
+
+<section id="changes">
+  <h2>Design changes since Lab 3</h2>
+  <p class="sub">Applied from TA feedback and what the queries needed.</p>
+  <ol class="changes">
+    <li><strong>Redundant client links removed.</strong> SERVICE_TICKET and WARRANTY_CLAIM no longer store Client_ID. The client is reached through DEVICE (and BILLING_STATEMENT → SERVICE_TICKET).</li>
+    <li><strong>GENERATES dropped.</strong> Each ticket has at most one bill, so BILLING_STATEMENT holds Service_Ticket_ID directly as a unique foreign key.</li>
+    <li><strong>IMEI_Serial_No on DEVICE.</strong> The real-world identifier, kept as a candidate key. Q6 lists it.</li>
+    <li><strong>Warranty_Claim_ID on SERVICE_TICKET.</strong> Marks warranty rework jobs, which the Q5 stock rule allows.</li>
+    <li><strong>REPAIR_PROCEDURE, not PROCEDURE.</strong> PROCEDURE is a reserved word in T-SQL.</li>
+  </ol>
+</section>
+
+
+<section class="q" id="q1">
+  <header><span class="qn">Q1</span><span class="rc">10 rows</span></header>
+  <p class="ask">For each repair station, count how many repair job/procedure took less than 180 minutes to complete. Breakdown the count by Device Category (e.g., Smartphone, Tablet, Smartwatch, Audio Wearables).</p>
+  <pre class="sql"><code><span class="k">WITH</span> ProcTime <span class="k">AS</span> (
+    <span class="k">SELECT</span> p.Procedure_ID, p.Service_Ticket_ID,
+           <span class="k">SUM</span>(ws.Billable_Time) <span class="k">AS</span> Total_Minutes
+    <span class="k">FROM</span> REPAIR_PROCEDURE p
+    <span class="k">JOIN</span> WORK_SESSION ws    <span class="k">ON</span> ws.Procedure_ID = p.Procedure_ID
+    <span class="k">JOIN</span> SERVICE_TICKET st  <span class="k">ON</span> st.Service_Ticket_ID = p.Service_Ticket_ID
+    <span class="k">WHERE</span> st.Status <span class="k">IN</span> (&#x27;Ready for Pickup&#x27;, &#x27;Completed&#x27;)      <span class="c">-- finished jobs only</span>
+    <span class="k">GROUP</span> <span class="k">BY</span> p.Procedure_ID, p.Service_Ticket_ID
+)
+<span class="k">SELECT</span> w.Workstation_ID, w.Workstation_Type, dt.Device_Category,
+       <span class="k">COUNT</span>(*) <span class="k">AS</span> Procedures_Under_180_Min
+<span class="k">FROM</span> ProcTime pt
+<span class="k">JOIN</span> SERVICE_TICKET st <span class="k">ON</span> st.Service_Ticket_ID = pt.Service_Ticket_ID
+<span class="k">JOIN</span> WORKSTATION w     <span class="k">ON</span> w.Workstation_ID = st.Workstation_ID
+<span class="k">JOIN</span> DEVICE d          <span class="k">ON</span> d.Device_ID = st.Device_ID
+<span class="k">JOIN</span> DEVICE_TYPE dt    <span class="k">ON</span> dt.Model_ID = d.Model_ID
+<span class="k">WHERE</span> pt.Total_Minutes &lt; <span class="n">180</span>
+<span class="k">GROUP</span> <span class="k">BY</span> w.Workstation_ID, w.Workstation_Type, dt.Device_Category
+<span class="k">ORDER</span> <span class="k">BY</span> w.Workstation_ID, dt.Device_Category;</code></pre><p class="lbl">Output</p><div class="tbl"><table><thead><tr><th class="num">Workstation ID</th><th class="">Workstation Type</th><th class="">Device Category</th><th class="num">Procedures Under 180 Min</th></tr></thead><tbody><tr><td class="num">1</td><td class="">ESD-Safe Mobile Bench</td><td class="">Earbuds</td><td class="num">2</td></tr><tr><td class="num">1</td><td class="">ESD-Safe Mobile Bench</td><td class="">Headphones</td><td class="num">4</td></tr><tr><td class="num">1</td><td class="">ESD-Safe Mobile Bench</td><td class="">Smartphone</td><td class="num">10</td></tr><tr><td class="num">1</td><td class="">ESD-Safe Mobile Bench</td><td class="">Smartwatch</td><td class="num">1</td></tr><tr><td class="num">1</td><td class="">ESD-Safe Mobile Bench</td><td class="">Tablet</td><td class="num">2</td></tr><tr><td class="num">2</td><td class="">Cleanroom Screen Station</td><td class="">Smartphone</td><td class="num">8</td></tr><tr><td class="num">2</td><td class="">Cleanroom Screen Station</td><td class="">Smartwatch</td><td class="num">3</td></tr><tr><td class="num">2</td><td class="">Cleanroom Screen Station</td><td class="">Tablet</td><td class="num">5</td></tr><tr><td class="num">4</td><td class="">Audio Testing Station</td><td class="">Earbuds</td><td class="num">3</td></tr><tr><td class="num">4</td><td class="">Audio Testing Station</td><td class="">Headphones</td><td class="num">4</td></tr></tbody></table></div>
+  <div class="why"><p class="lbl">How it works</p><p>The CTE sums each procedure&#x27;s work-session minutes (γ Procedure_ID; SUM(Billable_Time)) and keeps only procedures on finished tickets (Ready for Pickup / Completed). A procedure counts as finished only when its ticket is done. The main query joins each procedure to its ticket&#x27;s workstation and to the device&#x27;s category (via DEVICE → DEVICE_TYPE), keeps procedures with total time &lt; 180 minutes, and groups by workstation and category to count them. The Micro-Soldering Desk (3) does not appear because logic-board jobs in our data all ran 180 minutes or more.</p></div>
+</section>
+
+<section class="q" id="q2">
+  <header><span class="qn">Q2</span><span class="rc">5 rows</span></header>
+  <p class="ask">For each Device Category, list the total revenue generated across all completed work orders. Display the total revenue collected from Labor Fees (derived from technician work logs) and Spare Parts (derived from allocated parts at locked-in prices) separately.</p>
+  <pre class="sql"><code><span class="k">WITH</span> Completed <span class="k">AS</span> (                     <span class="c">-- a bill exists only once all procedures are done</span>
+    <span class="k">SELECT</span> st.Service_Ticket_ID, dt.Device_Category
+    <span class="k">FROM</span> SERVICE_TICKET st
+    <span class="k">JOIN</span> BILLING_STATEMENT b <span class="k">ON</span> b.Service_Ticket_ID = st.Service_Ticket_ID
+    <span class="k">JOIN</span> DEVICE d            <span class="k">ON</span> d.Device_ID = st.Device_ID
+    <span class="k">JOIN</span> DEVICE_TYPE dt      <span class="k">ON</span> dt.Model_ID = d.Model_ID
+),
+Labour <span class="k">AS</span> (
+    <span class="k">SELECT</span> p.Service_Ticket_ID,
+           <span class="k">SUM</span>(ws.Billable_Time / <span class="n">60.0</span> * t.Standard_Hourly_Billing_Rate) <span class="k">AS</span> Labour_Fee
+    <span class="k">FROM</span> REPAIR_PROCEDURE p
+    <span class="k">JOIN</span> WORK_SESSION ws <span class="k">ON</span> ws.Procedure_ID = p.Procedure_ID
+    <span class="k">JOIN</span> TECHNICIAN t    <span class="k">ON</span> t.Technician_ID = ws.Technician_ID
+    <span class="k">GROUP</span> <span class="k">BY</span> p.Service_Ticket_ID
+),
+Parts <span class="k">AS</span> (
+    <span class="k">SELECT</span> p.Service_Ticket_ID,
+           <span class="k">SUM</span>(pa.Quantity_Allocated * pa.Locked_Unit_Price) <span class="k">AS</span> Parts_Fee
+    <span class="k">FROM</span> REPAIR_PROCEDURE p
+    <span class="k">JOIN</span> PART_ALLOCATION pa <span class="k">ON</span> pa.Procedure_ID = p.Procedure_ID
+    <span class="k">GROUP</span> <span class="k">BY</span> p.Service_Ticket_ID
+)
+<span class="k">SELECT</span> c.Device_Category,
+       <span class="k">COUNT</span>(*)                                                    <span class="k">AS</span> Completed_Work_Orders,
+       <span class="k">CAST</span>(<span class="k">SUM</span>(<span class="k">COALESCE</span>(l.Labour_Fee, <span class="n">0</span>)) <span class="k">AS</span> <span class="k">DECIMAL</span>(<span class="n">12</span>,<span class="n">2</span>))       <span class="k">AS</span> Labour_Revenue,
+       <span class="k">CAST</span>(<span class="k">SUM</span>(<span class="k">COALESCE</span>(pr.Parts_Fee, <span class="n">0</span>)) <span class="k">AS</span> <span class="k">DECIMAL</span>(<span class="n">12</span>,<span class="n">2</span>))       <span class="k">AS</span> Spare_Parts_Revenue,
+       <span class="k">CAST</span>(<span class="k">SUM</span>(<span class="k">COALESCE</span>(l.Labour_Fee, <span class="n">0</span>) + <span class="k">COALESCE</span>(pr.Parts_Fee, <span class="n">0</span>)) <span class="k">AS</span> <span class="k">DECIMAL</span>(<span class="n">12</span>,<span class="n">2</span>)) <span class="k">AS</span> Total_Revenue
+<span class="k">FROM</span> Completed c
+<span class="k">LEFT</span> <span class="k">JOIN</span> Labour l <span class="k">ON</span> l.Service_Ticket_ID = c.Service_Ticket_ID
+<span class="k">LEFT</span> <span class="k">JOIN</span> Parts pr <span class="k">ON</span> pr.Service_Ticket_ID = c.Service_Ticket_ID
+<span class="k">GROUP</span> <span class="k">BY</span> c.Device_Category
+<span class="k">ORDER</span> <span class="k">BY</span> Total_Revenue <span class="k">DESC</span>;</code></pre><p class="lbl">Output</p><div class="tbl"><table><thead><tr><th class="">Device Category</th><th class="num">Completed Work Orders</th><th class="num">Labour Revenue</th><th class="num">Spare Parts Revenue</th><th class="num">Total Revenue</th></tr></thead><tbody><tr><td class="">Smartphone</td><td class="num">19</td><td class="num">3,597.92</td><td class="num">3,361.68</td><td class="num">6,959.60</td></tr><tr><td class="">Tablet</td><td class="num">7</td><td class="num">1,363.55</td><td class="num">1,623.09</td><td class="num">2,986.64</td></tr><tr><td class="">Headphones</td><td class="num">5</td><td class="num">761.67</td><td class="num">585.08</td><td class="num">1,346.75</td></tr><tr><td class="">Smartwatch</td><td class="num">4</td><td class="num">555.00</td><td class="num">627.90</td><td class="num">1,182.90</td></tr><tr><td class="">Earbuds</td><td class="num">5</td><td class="num">773.75</td><td class="num">209.88</td><td class="num">983.63</td></tr></tbody></table></div>
+  <div class="why"><p class="lbl">How it works</p><p>Completed work orders are tickets that have a billing statement. Labour and parts are aggregated per ticket in two separate CTEs <em>before</em> joining. Joining work sessions and part allocations together would multiply rows: two sessions × two parts would double-count both. Labour = Σ(Billable_Time/60 × hourly rate). Parts = Σ(Quantity × Locked_Unit_Price), the price frozen at allocation, so later catalogue price changes do not alter revenue. The per-ticket totals are then grouped by device category.</p></div>
+</section>
+
+<section class="q" id="q3">
+  <header><span class="qn">Q3</span><span class="rc">7 rows</span></header>
+  <p class="ask">List all customers who have filed Warranty Claims for repair jobs executed by a technician whose specialization does not match the category of the serviced device (e.g., a technician specializing in &quot;Display&quot; repairing an &quot;Headphone&quot; on procedure related to &quot;Audio&quot;). For each affected customer, count how many total warranty claims they have filed, broken down by Device Manufacturer.</p>
+  <pre class="sql"><code><span class="k">WITH</span> MismatchTickets <span class="k">AS</span> (
+    <span class="k">SELECT</span> <span class="k">DISTINCT</span> p.Service_Ticket_ID
+    <span class="k">FROM</span> REPAIR_PROCEDURE p
+    <span class="k">JOIN</span> WORK_SESSION ws <span class="k">ON</span> ws.Procedure_ID = p.Procedure_ID
+    <span class="k">JOIN</span> TECHNICIAN t    <span class="k">ON</span> t.Technician_ID = ws.Technician_ID
+    <span class="k">WHERE</span> t.Primary_Specialisation &lt;&gt; p.Procedure_Type
+),
+AffectedCustomers <span class="k">AS</span> (
+    <span class="k">SELECT</span> <span class="k">DISTINCT</span> d.Client_ID
+    <span class="k">FROM</span> WARRANTY_CLAIM wc
+    <span class="k">JOIN</span> BILLING_STATEMENT b <span class="k">ON</span> b.Bill_ID = wc.Bill_ID
+    <span class="k">JOIN</span> SERVICE_TICKET st   <span class="k">ON</span> st.Service_Ticket_ID = b.Service_Ticket_ID
+    <span class="k">JOIN</span> DEVICE d            <span class="k">ON</span> d.Device_ID = st.Device_ID
+    <span class="k">WHERE</span> st.Service_Ticket_ID <span class="k">IN</span> (<span class="k">SELECT</span> Service_Ticket_ID <span class="k">FROM</span> MismatchTickets)
+)
+<span class="k">SELECT</span> c.Client_ID, c.Name <span class="k">AS</span> Customer_Name, dt.Manufacturer_Name,
+       <span class="k">COUNT</span>(wc.Claim_ID) <span class="k">AS</span> Total_Warranty_Claims
+<span class="k">FROM</span> AffectedCustomers ac
+<span class="k">JOIN</span> CLIENT c            <span class="k">ON</span> c.Client_ID = ac.Client_ID
+<span class="k">JOIN</span> DEVICE d            <span class="k">ON</span> d.Client_ID = c.Client_ID
+<span class="k">JOIN</span> DEVICE_TYPE dt      <span class="k">ON</span> dt.Model_ID = d.Model_ID
+<span class="k">JOIN</span> SERVICE_TICKET st   <span class="k">ON</span> st.Device_ID = d.Device_ID
+<span class="k">JOIN</span> BILLING_STATEMENT b <span class="k">ON</span> b.Service_Ticket_ID = st.Service_Ticket_ID
+<span class="k">JOIN</span> WARRANTY_CLAIM wc   <span class="k">ON</span> wc.Bill_ID = b.Bill_ID
+<span class="k">GROUP</span> <span class="k">BY</span> c.Client_ID, c.Name, dt.Manufacturer_Name
+<span class="k">ORDER</span> <span class="k">BY</span> c.Client_ID, dt.Manufacturer_Name;</code></pre><p class="lbl">Output</p><div class="tbl"><table><thead><tr><th class="num">Client ID</th><th class="">Customer Name</th><th class="">Manufacturer Name</th><th class="num">Total Warranty Claims</th></tr></thead><tbody><tr><td class="num">2</td><td class="">Priya Raman</td><td class="">Samsung</td><td class="num">1</td></tr><tr><td class="num">2</td><td class="">Priya Raman</td><td class="">Sony</td><td class="num">2</td></tr><tr><td class="num">4</td><td class="">Muhammad Faris</td><td class="">Bose</td><td class="num">1</td></tr><tr><td class="num">6</td><td class="">Aisha Binte Rahman</td><td class="">Apple</td><td class="num">1</td></tr><tr><td class="num">8</td><td class="">Nur Hidayah</td><td class="">Samsung</td><td class="num">1</td></tr><tr><td class="num">14</td><td class="">Harbourfront Consulting Pte Ltd</td><td class="">Samsung</td><td class="num">1</td></tr><tr><td class="num">15</td><td class="">Lumen Design Studio Pte Ltd</td><td class="">Sony</td><td class="num">1</td></tr></tbody></table></div>
+  <div class="why"><p class="lbl">How it works</p><p>MismatchTickets finds tickets with at least one work session where the technician&#x27;s Primary_Specialisation differs from the procedure&#x27;s Procedure_Type. AffectedCustomers is the set of clients who filed a warranty claim on one of those tickets. For each affected customer, <em>all</em> their warranty claims are then counted and grouped by device manufacturer. Priya Raman, for example, has 2 Sony claims (from a mismatched headphone repair) and 1 Samsung claim.</p></div>
+</section>
+
+<section class="q" id="q4">
+  <header><span class="qn">Q4</span><span class="rc">6 rows</span></header>
+  <p class="ask">List the names and contact emails of customers who submitted warranty claims for devices whose initial Diagnostic Reports related to &quot;Liquid Damage&quot; or &quot;Tripped&quot;. Count the total number of such claims filed per customer and calculate the total financial payout value requested for these water-damaged devices.</p>
+  <pre class="sql"><code><span class="k">SELECT</span> c.Name <span class="k">AS</span> Customer_Name, c.Email,
+       <span class="k">COUNT</span>(wc.Claim_ID)                                   <span class="k">AS</span> Water_Damage_Claims,
+       <span class="k">SUM</span>(wc.Requested_Refund_Value)                       <span class="k">AS</span> Total_Requested_Payout,
+       <span class="k">SUM</span>(<span class="k">COALESCE</span>(wc.Approved_Refund_Value, <span class="n">0</span>))           <span class="k">AS</span> Total_Approved_Payout
+<span class="k">FROM</span> WARRANTY_CLAIM wc
+<span class="k">JOIN</span> BILLING_STATEMENT b        <span class="k">ON</span> b.Bill_ID = wc.Bill_ID
+<span class="k">JOIN</span> SERVICE_TICKET st          <span class="k">ON</span> st.Service_Ticket_ID = b.Service_Ticket_ID
+<span class="k">JOIN</span> DIAGNOSTIC_ASSESSMENT da   <span class="k">ON</span> da.Service_Ticket_ID = st.Service_Ticket_ID
+<span class="k">JOIN</span> DEVICE d                   <span class="k">ON</span> d.Device_ID = st.Device_ID
+<span class="k">JOIN</span> CLIENT c                   <span class="k">ON</span> c.Client_ID = d.Client_ID
+<span class="k">WHERE</span> da.Health_Results <span class="k">IN</span> (&#x27;Liquid Damage&#x27;, &#x27;Tripped&#x27;)
+<span class="k">GROUP</span> <span class="k">BY</span> c.Client_ID, c.Name, c.Email
+<span class="k">ORDER</span> <span class="k">BY</span> Total_Requested_Payout <span class="k">DESC</span>;</code></pre><p class="lbl">Output</p><div class="tbl"><table><thead><tr><th class="">Customer Name</th><th class="">Email</th><th class="num">Water Damage Claims</th><th class="num">Total Requested Payout</th><th class="num">Total Approved Payout</th></tr></thead><tbody><tr><td class="">Rajesh Kumar</td><td class="">rajesh.k@yahoo.com</td><td class="num">1</td><td class="num">280.00</td><td class="num">0.00</td></tr><tr><td class="">Lim Jia Hui</td><td class="">jiahui.lim@yahoo.com</td><td class="num">1</td><td class="num">260.00</td><td class="num">0.00</td></tr><tr><td class="">Priya Raman</td><td class="">priya.raman@outlook.com</td><td class="num">2</td><td class="num">210.00</td><td class="num">100.00</td></tr><tr><td class="">Northwind Logistics Pte Ltd</td><td class="">it.support@northwindlog.com.sg</td><td class="num">1</td><td class="num">210.00</td><td class="num">180.00</td></tr><tr><td class="">Lumen Design Studio Pte Ltd</td><td class="">ops@lumendesign.sg</td><td class="num">1</td><td class="num">160.00</td><td class="num">0.00</td></tr><tr><td class="">Gabriel Lee</td><td class="">gabriel.lee@gmail.com</td><td class="num">1</td><td class="num">70.00</td><td class="num">70.00</td></tr></tbody></table></div>
+  <div class="why"><p class="lbl">How it works</p><p>Each warranty claim is traced back through BILLING_STATEMENT → SERVICE_TICKET to that ticket&#x27;s DIAGNOSTIC_ASSESSMENT. Only claims whose initial assessment recorded Health_Results = &#x27;Liquid Damage&#x27; or &#x27;Tripped&#x27; are kept. The rows are grouped by customer (name, email) to count claims and sum Requested_Refund_Value. The approved total is shown alongside for comparison.</p></div>
+</section>
+
+<section class="q" id="q5">
+  <header><span class="qn">Q5</span><span class="rc">2 allowed · 1 blocked</span></header>
+  <p class="ask">When a spare component&#x27;s available stock drops below 20% of its minimum reorder threshold, remaining units can only be allocated to work orders for Corporate Clients or Warranty Claims. Prepare your SQL queries and data checks to simulate both a Success scenario (part allocation allowed for a corporate/warranty job) and a Fail scenario (part allocation blocked for a standard retail job).</p>
+  
+<div class="flow">
+  <div class="step ok"><b>Corporate job · ticket 43</b><span>ALLOWED</span><small>stock 3 → 2</small></div>
+  <div class="step ok"><b>Warranty rework · ticket 45</b><span>ALLOWED</span><small>stock 2 → 1</small></div>
+  <div class="step no"><b>Retail job · ticket 44</b><span>BLOCKED</span><small>RAISERROR + ROLLBACK</small></div>
+</div>
+<p class="lbl">Trigger</p>
+<pre class="sql"><code><span class="k">CREATE</span> <span class="k">OR</span> <span class="k">ALTER</span> <span class="k">TRIGGER</span> trg_PartAllocation_Guard
+<span class="k">ON</span> PART_ALLOCATION
+<span class="k">INSTEAD</span> <span class="k">OF</span> <span class="k">INSERT</span>
+<span class="k">AS</span>
+<span class="k">BEGIN</span>
+    <span class="k">SET</span> <span class="k">NOCOUNT</span> <span class="k">ON</span>;
+
+    <span class="c">-- Rule check: critically low part requested by a job that is neither corporate nor warranty</span>
+    <span class="k">IF</span> <span class="k">EXISTS</span> (
+        <span class="k">SELECT</span> <span class="n">1</span>
+        <span class="k">FROM</span> inserted i
+        <span class="k">JOIN</span> PART p             <span class="k">ON</span> p.Part_Code = i.Part_Code
+        <span class="k">JOIN</span> REPAIR_PROCEDURE rp <span class="k">ON</span> rp.Procedure_ID = i.Procedure_ID
+        <span class="k">JOIN</span> SERVICE_TICKET st  <span class="k">ON</span> st.Service_Ticket_ID = rp.Service_Ticket_ID
+        <span class="k">JOIN</span> DEVICE d           <span class="k">ON</span> d.Device_ID = st.Device_ID
+        <span class="k">JOIN</span> CLIENT c           <span class="k">ON</span> c.Client_ID = d.Client_ID
+        <span class="k">WHERE</span> p.Current_Quantity &lt; <span class="n">0.2</span> * p.Minimum_Reorder_Quantity
+          <span class="k">AND</span> c.Type &lt;&gt; &#x27;Corporate&#x27;
+          <span class="k">AND</span> st.Warranty_Claim_ID <span class="k">IS</span> <span class="k">NULL</span>
+    )
+    <span class="k">BEGIN</span>
+        <span class="k">RAISERROR</span>(&#x27;ALLOCATION BLOCKED: stock is below <span class="n">20</span>%% of the reorder threshold. Remaining units are reserved for Corporate or Warranty jobs.&#x27;, <span class="n">16</span>, <span class="n">1</span>);
+        <span class="k">ROLLBACK</span> <span class="k">TRANSACTION</span>;
+        <span class="k">RETURN</span>;
+    <span class="k">END</span>
+
+    <span class="c">-- Basic stock check</span>
+    <span class="k">IF</span> <span class="k">EXISTS</span> (<span class="k">SELECT</span> <span class="n">1</span> <span class="k">FROM</span> inserted i <span class="k">JOIN</span> PART p <span class="k">ON</span> p.Part_Code = i.Part_Code
+               <span class="k">WHERE</span> i.Quantity_Allocated &gt; p.Current_Quantity)
+    <span class="k">BEGIN</span>
+        <span class="k">RAISERROR</span>(&#x27;ALLOCATION BLOCKED: insufficient stock on hand.&#x27;, <span class="n">16</span>, <span class="n">1</span>);
+        <span class="k">ROLLBACK</span> <span class="k">TRANSACTION</span>;
+        <span class="k">RETURN</span>;
+    <span class="k">END</span>
+
+    <span class="c">-- Allowed: insert with the price locked in from the catalogue right now</span>
+    <span class="k">INSERT</span> <span class="k">INTO</span> PART_ALLOCATION (Allocated_ID, Procedure_ID, Quantity_Allocated,
+                                 Locked_Unit_Price, Allocated_Time, Part_Code)
+    <span class="k">SELECT</span> i.Allocated_ID, i.Procedure_ID, i.Quantity_Allocated,
+           p.Selling_Price, <span class="k">COALESCE</span>(i.Allocated_Time, <span class="k">GETDATE</span>()), i.Part_Code
+    <span class="k">FROM</span> inserted i
+    <span class="k">JOIN</span> PART p <span class="k">ON</span> p.Part_Code = i.Part_Code;
+
+    <span class="c">-- Deduct stock</span>
+    <span class="k">UPDATE</span> p
+    <span class="k">SET</span> p.Current_Quantity = p.Current_Quantity - x.Qty
+    <span class="k">FROM</span> PART p
+    <span class="k">JOIN</span> (<span class="k">SELECT</span> Part_Code, <span class="k">SUM</span>(Quantity_Allocated) <span class="k">AS</span> Qty
+          <span class="k">FROM</span> inserted <span class="k">GROUP</span> <span class="k">BY</span> Part_Code) x <span class="k">ON</span> x.Part_Code = p.Part_Code;
+
+    <span class="k">PRINT</span> &#x27;ALLOCATION ALLOWED: part allocated and stock deducted.&#x27;;
+<span class="k">END</span>;</code></pre>
+<p class="lbl">Data check: part status</p><div class="tbl"><table><thead><tr><th class="">Part Code</th><th class="">Item Description</th><th class="num">Current Quantity</th><th class="num">Minimum Reorder Quantity</th><th class="num">Restricted Below</th><th class="">Stock Status</th></tr></thead><tbody><tr><td class="">BAT-IP15</td><td class="">iPhone 15 Pro Li-ion Battery 3274mAh</td><td class="num">3</td><td class="num">20</td><td class="num">4.0</td><td class="">RESTRICTED</td></tr></tbody></table></div>
+<p class="lbl">Data check: who may draw restricted stock</p><div class="tbl"><table><thead><tr><th class="num">Service Ticket ID</th><th class="num">Procedure ID</th><th class="">Client Name</th><th class="">Client Type</th><th class="num">Warranty Claim ID</th><th class="">Expected Result</th></tr></thead><tbody><tr><td class="num">43</td><td class="num">50</td><td class="">Northwind Logistics Pte Ltd</td><td class="">Corporate</td><td class="num"></td><td class="">ALLOWED (Corporate)</td></tr><tr><td class="num">44</td><td class="num">51</td><td class="">Sophie Ong</td><td class="">Retail</td><td class="num"></td><td class="">BLOCKED (Retail)</td></tr><tr><td class="num">45</td><td class="num">52</td><td class="">Hannah Goh</td><td class="">Retail</td><td class="num">15</td><td class="">ALLOWED (Warranty)</td></tr></tbody></table></div>
+<p class="lbl">Retail attempt message</p>
+<pre class="res err">Msg 50000, Level 16: ALLOCATION BLOCKED: stock is below 20% of the reorder threshold. Remaining units are reserved for Corporate or Warranty jobs.
+Msg 3609, Level 16: The transaction ended in the trigger. The batch has been aborted.</pre>
+<p class="lbl">Result: allocations that exist after the three attempts (final BAT-IP15 stock = 1)</p><div class="tbl"><table><thead><tr><th class="num">Allocated ID</th><th class="num">Service Ticket ID</th><th class="">Client Name</th><th class="">Type</th><th class="">Part Code</th><th class="num">Locked Unit Price</th></tr></thead><tbody><tr><td class="num">9001</td><td class="num">43</td><td class="">Northwind Logistics Pte Ltd</td><td class="">Corporate</td><td class="">BAT-IP15</td><td class="num">79.00</td></tr><tr><td class="num">9002</td><td class="num">45</td><td class="">Hannah Goh</td><td class="">Retail (warranty rework)</td><td class="">BAT-IP15</td><td class="num">79.00</td></tr></tbody></table></div>
+<p class="lbl">Demo steps (queries/q5/)</p><details><summary>Reset demo state (safe to re-run)</summary><pre class="sql"><code><span class="k">DELETE</span> <span class="k">FROM</span> PART_ALLOCATION <span class="k">WHERE</span> Allocated_ID &gt;= <span class="n">9000</span>;
+<span class="k">UPDATE</span> PART <span class="k">SET</span> Current_Quantity = <span class="n">3</span> <span class="k">WHERE</span> Part_Code = &#x27;BAT-IP15&#x27;;</code></pre></details><details><summary>Data check: is BAT-IP15 below 20% of its reorder threshold?</summary><pre class="sql"><code><span class="k">SELECT</span> Part_Code, Item_Description, Current_Quantity, Minimum_Reorder_Quantity,
+       <span class="n">0.2</span> * Minimum_Reorder_Quantity <span class="k">AS</span> Restricted_Below,
+       <span class="k">CASE</span> <span class="k">WHEN</span> Current_Quantity &lt; <span class="n">0.2</span> * Minimum_Reorder_Quantity
+            <span class="k">THEN</span> &#x27;RESTRICTED&#x27; <span class="k">ELSE</span> &#x27;OPEN&#x27; <span class="k">END</span> <span class="k">AS</span> Stock_Status
+<span class="k">FROM</span> PART
+<span class="k">WHERE</span> Part_Code = &#x27;BAT-IP15&#x27;;</code></pre></details><details><summary>Data check: which open battery jobs may draw from restricted stock?</summary><pre class="sql"><code><span class="k">SELECT</span> st.Service_Ticket_ID, rp.Procedure_ID, c.Name <span class="k">AS</span> Client_Name, c.Type <span class="k">AS</span> Client_Type,
+       st.Warranty_Claim_ID,
+       <span class="k">CASE</span> <span class="k">WHEN</span> c.Type = &#x27;Corporate&#x27; <span class="k">THEN</span> &#x27;ALLOWED (Corporate)&#x27;
+            <span class="k">WHEN</span> st.Warranty_Claim_ID <span class="k">IS</span> <span class="k">NOT</span> <span class="k">NULL</span> <span class="k">THEN</span> &#x27;ALLOWED (Warranty)&#x27;
+            <span class="k">ELSE</span> &#x27;BLOCKED (Retail)&#x27; <span class="k">END</span> <span class="k">AS</span> Expected_Result
+<span class="k">FROM</span> SERVICE_TICKET st
+<span class="k">JOIN</span> REPAIR_PROCEDURE rp <span class="k">ON</span> rp.Service_Ticket_ID = st.Service_Ticket_ID
+<span class="k">JOIN</span> DEVICE d            <span class="k">ON</span> d.Device_ID = st.Device_ID
+<span class="k">JOIN</span> CLIENT c            <span class="k">ON</span> c.Client_ID = d.Client_ID
+<span class="k">WHERE</span> st.Status = &#x27;In Progress&#x27; <span class="k">AND</span> rp.Procedure_Type = &#x27;Battery&#x27;
+<span class="k">ORDER</span> <span class="k">BY</span> st.Service_Ticket_ID;</code></pre></details><details><summary>SUCCESS scenario: corporate job</summary><pre class="sql"><code><span class="k">INSERT</span> <span class="k">INTO</span> PART_ALLOCATION (Allocated_ID, Procedure_ID, Quantity_Allocated, Locked_Unit_Price, Allocated_Time, Part_Code)
+<span class="k">SELECT</span> <span class="n">9001</span>, rp.Procedure_ID, <span class="n">1</span>, <span class="n">0.00</span> /* placeholder - trigger locks catalogue price */, <span class="k">GETDATE</span>(), &#x27;BAT-IP15&#x27;
+<span class="k">FROM</span> REPAIR_PROCEDURE rp
+<span class="k">JOIN</span> SERVICE_TICKET st <span class="k">ON</span> st.Service_Ticket_ID = rp.Service_Ticket_ID
+<span class="k">JOIN</span> DEVICE d          <span class="k">ON</span> d.Device_ID = st.Device_ID
+<span class="k">JOIN</span> CLIENT c          <span class="k">ON</span> c.Client_ID = d.Client_ID
+<span class="k">WHERE</span> st.Status = &#x27;In Progress&#x27; <span class="k">AND</span> rp.Procedure_Type = &#x27;Battery&#x27; <span class="k">AND</span> c.Type = &#x27;Corporate&#x27;;</code></pre></details><details><summary>SUCCESS scenario: warranty rework job</summary><pre class="sql"><code><span class="k">INSERT</span> <span class="k">INTO</span> PART_ALLOCATION (Allocated_ID, Procedure_ID, Quantity_Allocated, Locked_Unit_Price, Allocated_Time, Part_Code)
+<span class="k">SELECT</span> <span class="n">9002</span>, rp.Procedure_ID, <span class="n">1</span>, <span class="n">0.00</span>, <span class="k">GETDATE</span>(), &#x27;BAT-IP15&#x27;
+<span class="k">FROM</span> REPAIR_PROCEDURE rp
+<span class="k">JOIN</span> SERVICE_TICKET st <span class="k">ON</span> st.Service_Ticket_ID = rp.Service_Ticket_ID
+<span class="k">WHERE</span> st.Status = &#x27;In Progress&#x27; <span class="k">AND</span> rp.Procedure_Type = &#x27;Battery&#x27; <span class="k">AND</span> st.Warranty_Claim_ID <span class="k">IS</span> <span class="k">NOT</span> <span class="k">NULL</span>;</code></pre></details><details><summary>FAIL scenario: standard retail job (trigger must block this)</summary><pre class="sql"><code><span class="k">INSERT</span> <span class="k">INTO</span> PART_ALLOCATION (Allocated_ID, Procedure_ID, Quantity_Allocated, Locked_Unit_Price, Allocated_Time, Part_Code)
+<span class="k">SELECT</span> <span class="n">9003</span>, rp.Procedure_ID, <span class="n">1</span>, <span class="n">0.00</span>, <span class="k">GETDATE</span>(), &#x27;BAT-IP15&#x27;
+<span class="k">FROM</span> REPAIR_PROCEDURE rp
+<span class="k">JOIN</span> SERVICE_TICKET st <span class="k">ON</span> st.Service_Ticket_ID = rp.Service_Ticket_ID
+<span class="k">JOIN</span> DEVICE d          <span class="k">ON</span> d.Device_ID = st.Device_ID
+<span class="k">JOIN</span> CLIENT c          <span class="k">ON</span> c.Client_ID = d.Client_ID
+<span class="k">WHERE</span> st.Status = &#x27;In Progress&#x27; <span class="k">AND</span> rp.Procedure_Type = &#x27;Battery&#x27;
+  <span class="k">AND</span> c.Type = &#x27;Retail&#x27; <span class="k">AND</span> st.Warranty_Claim_ID <span class="k">IS</span> <span class="k">NULL</span>;</code></pre></details><details><summary>Result: demo allocations that exist</summary><pre class="sql"><code><span class="k">SELECT</span> pa.Allocated_ID, pa.Procedure_ID, rp.Service_Ticket_ID, c.Name <span class="k">AS</span> Client_Name, c.Type,
+       pa.Part_Code, pa.Quantity_Allocated, pa.Locked_Unit_Price
+<span class="k">FROM</span> PART_ALLOCATION pa
+<span class="k">JOIN</span> REPAIR_PROCEDURE rp <span class="k">ON</span> rp.Procedure_ID = pa.Procedure_ID
+<span class="k">JOIN</span> SERVICE_TICKET st   <span class="k">ON</span> st.Service_Ticket_ID = rp.Service_Ticket_ID
+<span class="k">JOIN</span> DEVICE d            <span class="k">ON</span> d.Device_ID = st.Device_ID
+<span class="k">JOIN</span> CLIENT c            <span class="k">ON</span> c.Client_ID = d.Client_ID
+<span class="k">WHERE</span> pa.Allocated_ID &gt;= <span class="n">9000</span>;</code></pre></details><details><summary>Result: remaining BAT-IP15 stock</summary><pre class="sql"><code><span class="k">SELECT</span> Part_Code, Current_Quantity <span class="k">FROM</span> PART <span class="k">WHERE</span> Part_Code = &#x27;BAT-IP15&#x27;;</code></pre></details>
+  <div class="why"><p class="lbl">How it works</p><p>An INSTEAD OF INSERT trigger on PART_ALLOCATION enforces the rule. For each new allocation it checks whether the part&#x27;s Current_Quantity &lt; 20% of Minimum_Reorder_Quantity. If so, it blocks the insert (RAISERROR + ROLLBACK) unless the client is Corporate or the ticket is a warranty job (Warranty_Claim_ID not NULL). Allowed rows are inserted with Locked_Unit_Price copied from PART.Selling_Price at that moment, which also enforces the price-lock rule, and stock is deducted. In the demo, BAT-IP15 has 3 units (threshold 20, so the restricted level is below 4). The Northwind (corporate) and Hannah Goh (warranty rework) allocations succeed and stock drops 3 → 1. Sophie Ong&#x27;s retail allocation is rejected with an error.</p></div>
+</section>
+
+<section class="q" id="q6">
+  <header><span class="qn">Q6</span><span class="rc">2 rows</span></header>
+  <p class="ask">Identify any customer (individual or corporate) who has submitted more than three separate work orders within the same calendar month for devices belonging to the same Device Category. List the customer&#x27;s name, email, the device category, the month/year, and the IMEI/Serial Numbers of all associated devices.</p>
+  <pre class="sql"><code><span class="k">WITH</span> TicketInfo <span class="k">AS</span> (
+    <span class="k">SELECT</span> d.Client_ID, dt.Device_Category, d.IMEI_Serial_No,
+           <span class="k">YEAR</span>(st.Date_Received)  <span class="k">AS</span> Yr,
+           <span class="k">MONTH</span>(st.Date_Received) <span class="k">AS</span> Mth
+    <span class="k">FROM</span> SERVICE_TICKET st
+    <span class="k">JOIN</span> DEVICE d       <span class="k">ON</span> d.Device_ID = st.Device_ID
+    <span class="k">JOIN</span> DEVICE_TYPE dt <span class="k">ON</span> dt.Model_ID = d.Model_ID
+)
+<span class="k">SELECT</span> c.Name <span class="k">AS</span> Customer_Name, c.Email, ti.Device_Category,
+       <span class="k">CONCAT</span>(<span class="k">RIGHT</span>(<span class="k">CONCAT</span>(&#x27;<span class="n">0</span>&#x27;, ti.Mth), <span class="n">2</span>), &#x27;/&#x27;, ti.Yr) <span class="k">AS</span> Month_Year,
+       <span class="k">COUNT</span>(*) <span class="k">AS</span> Work_Orders,
+       <span class="k">STRING_AGG</span>(ti.IMEI_Serial_No, &#x27;, &#x27;) <span class="k">AS</span> IMEI_Serial_Numbers
+<span class="k">FROM</span> TicketInfo ti
+<span class="k">JOIN</span> CLIENT c <span class="k">ON</span> c.Client_ID = ti.Client_ID
+<span class="k">GROUP</span> <span class="k">BY</span> c.Client_ID, c.Name, c.Email, ti.Device_Category, ti.Yr, ti.Mth
+<span class="k">HAVING</span> <span class="k">COUNT</span>(*) &gt; <span class="n">3</span>
+<span class="k">ORDER</span> <span class="k">BY</span> c.Name, ti.Yr, ti.Mth;</code></pre><p class="lbl">Output</p><div class="tbl"><table><thead><tr><th class="">Customer Name</th><th class="">Email</th><th class="">Device Category</th><th class="">Month Year</th><th class="num">Work Orders</th><th class="">IMEI Serial Numbers</th></tr></thead><tbody><tr><td class="">Harbourfront Consulting Pte Ltd</td><td class="">assets@harbourfrontconsult.sg</td><td class="">Tablet</td><td class="">06/2026</td><td class="num">4</td><td class="">352345502737500, 354180297572162, 353186416116820, 353172209224638</td></tr><tr><td class="">Northwind Logistics Pte Ltd</td><td class="">it.support@northwindlog.com.sg</td><td class="">Smartphone</td><td class="">03/2026</td><td class="num">5</td><td class="">351527317737348, 351750812568955, 356398878896075, 351622551662650, 352731437147504</td></tr></tbody></table></div>
+  <div class="why"><p class="lbl">How it works</p><p>Each ticket is tagged with its client, device category and the year/month it was received. Grouping by client, category, year and month with HAVING COUNT(*) &gt; 3 keeps only groups of four or more work orders. STRING_AGG lists the IMEI/serial numbers in each group. Lumen Design (3 phones in Aug) is excluded because 3 is not more than three. Client Tan Wei Ming (4 tickets in Aug but in 4 different categories) is also excluded.</p></div>
+</section>
+
+<section id="checks">
+  <h2>Integrity checks</h2>
+  <p class="sub">Extra checks for the report's additional-effort section. Every bill's labour and parts totals recompute exactly from raw work sessions and locked part prices (A1: 40/40 match).</p>
+  <p class="lbl">A2 · Parts at or below reorder level, with open purchase orders</p><div class="tbl"><table><thead><tr><th class="">Part Code</th><th class="">Item Description</th><th class="num">Current Quantity</th><th class="num">Minimum Reorder Quantity</th><th class="num">Req ID</th><th class="num">Order ID</th><th class="">Order Status</th><th class="">Expected Delivery Date</th><th class="">Vendor</th></tr></thead><tbody><tr><td class="">AUD-HPH</td><td class="">40mm Headphone Driver Unit</td><td class="num">2</td><td class="num">5</td><td class="num">3</td><td class="num">3</td><td class="">Pending</td><td class="">2026-10-31</td><td class="">AudioTech Supplies Asia</td></tr><tr><td class="">BAT-IP15</td><td class="">iPhone 15 Pro Li-ion Battery 3274mAh</td><td class="num">3</td><td class="num">20</td><td class="num">1</td><td class="num">2</td><td class="">Shipped</td><td class="">2026-10-27</td><td class="">Shenzhen MobiParts Co.</td></tr><tr><td class="">FLX-USBC</td><td class="">USB-C Charging Port Flex Cable</td><td class="num">4</td><td class="num">10</td><td class="num">2</td><td class="num">2</td><td class="">Shipped</td><td class="">2026-10-27</td><td class="">Shenzhen MobiParts Co.</td></tr></tbody></table></div>
+  <p class="lbl">A3 · Warranty claims inside the 90-day store warranty</p><div class="tbl"><table><thead><tr><th class="num">Claim ID</th><th class="">Billing Date</th><th class="">Submission Date</th><th class="num">Days After Billing</th><th class="">Within 90 Days</th></tr></thead><tbody><tr><td class="num">1</td><td class="">2026-02-11</td><td class="">2026-03-04</td><td class="num">21</td><td class="">Y</td></tr><tr><td class="num">2</td><td class="">2026-02-17</td><td class="">2026-03-03</td><td class="num">14</td><td class="">Y</td></tr><tr><td class="num">3</td><td class="">2026-02-17</td><td class="">2026-03-29</td><td class="num">40</td><td class="">Y</td></tr><tr><td class="num">4</td><td class="">2026-01-20</td><td class="">2026-02-24</td><td class="num">35</td><td class="">Y</td></tr><tr><td class="num">5</td><td class="">2026-02-05</td><td class="">2026-03-07</td><td class="num">30</td><td class="">Y</td></tr><tr><td class="num">6</td><td class="">2026-04-10</td><td class="">2026-05-05</td><td class="num">25</td><td class="">Y</td></tr><tr><td class="num">7</td><td class="">2026-04-15</td><td class="">2026-05-30</td><td class="num">45</td><td class="">Y</td></tr><tr><td class="num">8</td><td class="">2026-05-12</td><td class="">2026-05-24</td><td class="num">12</td><td class="">Y</td></tr><tr><td class="num">9</td><td class="">2026-06-09</td><td class="">2026-06-27</td><td class="num">18</td><td class="">Y</td></tr><tr><td class="num">10</td><td class="">2026-03-20</td><td class="">2026-04-09</td><td class="num">20</td><td class="">Y</td></tr><tr><td class="num">11</td><td class="">2026-03-04</td><td class="">2026-04-06</td><td class="num">33</td><td class="">Y</td></tr><tr><td class="num">12</td><td class="">2026-06-17</td><td class="">2026-07-15</td><td class="num">28</td><td class="">Y</td></tr><tr><td class="num">13</td><td class="">2026-09-03</td><td class="">2026-09-13</td><td class="num">10</td><td class="">Y</td></tr><tr><td class="num">14</td><td class="">2026-01-14</td><td class="">2026-03-05</td><td class="num">50</td><td class="">Y</td></tr><tr><td class="num">15</td><td class="">2026-07-28</td><td class="">2026-08-27</td><td class="num">30</td><td class="">Y</td></tr></tbody></table></div>
+</section>
+
+<section id="practice">
+  <h2>Practice queries</h2>
+  <p class="sub">Ten queries the TA might ask on the spot. Each was run against the lab database and its output recorded.</p>
+  <details class="pq"><summary>P1. Technician(s) with the most billable hours; retain ties.</summary><pre class="sql"><code><span class="k">WITH</span> Hours <span class="k">AS</span> (
+    <span class="k">SELECT</span> t.Technician_ID, t.Name,
+           <span class="k">SUM</span>(ws.Billable_Time) <span class="k">AS</span> Billable_Minutes
+    <span class="k">FROM</span> TECHNICIAN t
+    <span class="k">JOIN</span> WORK_SESSION ws <span class="k">ON</span> ws.Technician_ID = t.Technician_ID
+    <span class="k">GROUP</span> <span class="k">BY</span> t.Technician_ID, t.Name
+)
+<span class="k">SELECT</span> <span class="k">TOP</span> (<span class="n">1</span>) <span class="k">WITH</span> <span class="k">TIES</span> Technician_ID, Name,
+       <span class="k">CAST</span>(Billable_Minutes / <span class="n">60.0</span> <span class="k">AS</span> <span class="k">DECIMAL</span>(<span class="n">10</span>,<span class="n">2</span>)) <span class="k">AS</span> Billable_Hours
+<span class="k">FROM</span> Hours
+<span class="k">ORDER</span> <span class="k">BY</span> Billable_Minutes <span class="k">DESC</span>;</code></pre><p class="lbl">Verified output</p><pre class="res">+-----------------+-------------+------------------+
+| Technician_ID   | Name        | Billable_Hours   |
++=================+=============+==================+
+| 5               | Evelyn Chua | 18.00            |
++-----------------+-------------+------------------+
+1 row(s).</pre></details>
+<details class="pq"><summary>P2. Recorded bill balances for unpaid/partial bills, grouped by client.</summary><pre class="sql"><code><span class="k">SELECT</span> c.Client_ID, c.Name <span class="k">AS</span> Client_Name,
+       <span class="k">COUNT</span>(*) <span class="k">AS</span> Unsettled_Bills,
+       <span class="k">SUM</span>(b.Balance_Due) <span class="k">AS</span> Recorded_Bill_Balance
+<span class="k">FROM</span> BILLING_STATEMENT b
+<span class="k">JOIN</span> SERVICE_TICKET st <span class="k">ON</span> st.Service_Ticket_ID = b.Service_Ticket_ID
+<span class="k">JOIN</span> DEVICE d <span class="k">ON</span> d.Device_ID = st.Device_ID
+<span class="k">JOIN</span> CLIENT c <span class="k">ON</span> c.Client_ID = d.Client_ID
+<span class="k">WHERE</span> b.Payment_Status <span class="k">IN</span> (&#x27;Unpaid&#x27;, &#x27;Partial&#x27;)
+<span class="k">GROUP</span> <span class="k">BY</span> c.Client_ID, c.Name
+<span class="k">ORDER</span> <span class="k">BY</span> Recorded_Bill_Balance <span class="k">DESC</span>, c.Client_ID;</code></pre><p class="lbl">Verified output</p><pre class="res">+-------------+----------------+-------------------+-------------------------+
+| Client_ID   | Client_Name    | Unsettled_Bills   | Recorded_Bill_Balance   |
++=============+================+===================+=========================+
+| 10          | Sophie Ong     | 1                 | 683.07                  |
++-------------+----------------+-------------------+-------------------------+
+| 4           | Muhammad Faris | 1                 | 465.34                  |
++-------------+----------------+-------------------+-------------------------+
+2 row(s).</pre></details>
+<details class="pq"><summary>P3. Parts at/below reorder level with no pending or shipped purchase order.</summary><pre class="sql"><code><span class="k">SELECT</span> p.Part_Code, p.Item_Description, p.Current_Quantity,
+       p.Minimum_Reorder_Quantity
+<span class="k">FROM</span> PART p
+<span class="k">WHERE</span> p.Current_Quantity &lt;= p.Minimum_Reorder_Quantity
+  <span class="k">AND</span> <span class="k">NOT</span> <span class="k">EXISTS</span> (
+      <span class="k">SELECT</span> <span class="n">1</span>
+      <span class="k">FROM</span> RESTOCK_REQUEST rr
+      <span class="k">JOIN</span> CREATES cr <span class="k">ON</span> cr.Req_ID = rr.Req_ID
+      <span class="k">JOIN</span> PURCHASE_ORDER po <span class="k">ON</span> po.Order_ID = cr.Order_ID
+      <span class="k">WHERE</span> rr.Part_Code = p.Part_Code
+        <span class="k">AND</span> po.Order_Status <span class="k">IN</span> (&#x27;Pending&#x27;, &#x27;Shipped&#x27;)
+  )
+<span class="k">ORDER</span> <span class="k">BY</span> p.Part_Code;</code></pre><p class="lbl">Verified output</p><pre class="res">+-------------+--------------------+--------------------+----------------------------+
+| Part_Code   | Item_Description   | Current_Quantity   | Minimum_Reorder_Quantity   |
++=============+====================+====================+============================+
++-------------+--------------------+--------------------+----------------------------+
+0 row(s). Empty output is the verified answer; the data is unchanged.</pre></details>
+<details class="pq"><summary>P4. Mean calendar-day boundaries from intake to billing, per category.</summary><pre class="sql"><code><span class="k">SELECT</span> dt.Device_Category, <span class="k">COUNT</span>(*) <span class="k">AS</span> Billed_Orders,
+       <span class="k">CAST</span>(<span class="k">AVG</span>(<span class="k">CAST</span>(DATEDIFF(DAY, st.Date_Received, b.Billing_Date)
+                     <span class="k">AS</span> <span class="k">DECIMAL</span>(<span class="n">10</span>,<span class="n">2</span>))) <span class="k">AS</span> <span class="k">DECIMAL</span>(<span class="n">10</span>,<span class="n">2</span>)) <span class="k">AS</span> Average_Days
+<span class="k">FROM</span> BILLING_STATEMENT b
+<span class="k">JOIN</span> SERVICE_TICKET st <span class="k">ON</span> st.Service_Ticket_ID = b.Service_Ticket_ID
+<span class="k">JOIN</span> DEVICE d <span class="k">ON</span> d.Device_ID = st.Device_ID
+<span class="k">JOIN</span> DEVICE_TYPE dt <span class="k">ON</span> dt.Model_ID = d.Model_ID
+<span class="k">GROUP</span> <span class="k">BY</span> dt.Device_Category
+<span class="k">ORDER</span> <span class="k">BY</span> Average_Days <span class="k">DESC</span>, dt.Device_Category;</code></pre><p class="lbl">Verified output</p><pre class="res">+-------------------+-----------------+----------------+
+| Device_Category   | Billed_Orders   | Average_Days   |
++===================+=================+================+
+| Tablet            | 7               | 1.57           |
++-------------------+-----------------+----------------+
+| Headphones        | 5               | 1.00           |
++-------------------+-----------------+----------------+
+| Smartphone        | 19              | 1.00           |
++-------------------+-----------------+----------------+
+| Earbuds           | 5               | 0.80           |
++-------------------+-----------------+----------------+
+| Smartwatch        | 4               | 0.50           |
++-------------------+-----------------+----------------+
+5 row(s).</pre></details>
+<details class="pq"><summary>P5. Vendor(s) with the largest total purchase-order value; retain ties.</summary><pre class="sql"><code><span class="k">SELECT</span> <span class="k">TOP</span> (<span class="n">1</span>) <span class="k">WITH</span> <span class="k">TIES</span> v.Vendor_ID, v.Name <span class="k">AS</span> Vendor_Name,
+       <span class="k">COUNT</span>(*) <span class="k">AS</span> Purchase_Orders,
+       <span class="k">SUM</span>(po.Total_Order_Cost) <span class="k">AS</span> Total_Order_Value
+<span class="k">FROM</span> VENDOR v
+<span class="k">JOIN</span> PURCHASE_ORDER po <span class="k">ON</span> po.Vendor_ID = v.Vendor_ID
+<span class="k">GROUP</span> <span class="k">BY</span> v.Vendor_ID, v.Name
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="k">SUM</span>(po.Total_Order_Cost) <span class="k">DESC</span>;</code></pre><p class="lbl">Verified output</p><pre class="res">+-------------+---------------------------+-------------------+---------------------+
+| Vendor_ID   | Vendor_Name               | Purchase_Orders   | Total_Order_Value   |
++=============+===========================+===================+=====================+
+| 4           | Pacific Display Solutions | 2                 | 6249.00             |
++-------------+---------------------------+-------------------+---------------------+
+1 row(s).</pre></details>
+<details class="pq"><summary>P7. Billed revenue by billing month in 2026, before tax and discounts.</summary><pre class="sql"><code><span class="k">SELECT</span> CONVERT(CHAR(<span class="n">7</span>), b.Billing_Date, <span class="n">120</span>) <span class="k">AS</span> Billing_Month,
+       <span class="k">COUNT</span>(*) <span class="k">AS</span> Bills,
+       <span class="k">SUM</span>(b.Total_Labour_Charges) <span class="k">AS</span> Labour_Revenue,
+       <span class="k">SUM</span>(b.Total_Component_Costs) <span class="k">AS</span> Parts_Revenue,
+       <span class="k">SUM</span>(b.Total_Labour_Charges + b.Total_Component_Costs) <span class="k">AS</span> Total_Revenue
+<span class="k">FROM</span> BILLING_STATEMENT b
+<span class="k">WHERE</span> b.Billing_Date &gt;= &#x27;<span class="n">20260101</span>&#x27; <span class="k">AND</span> b.Billing_Date &lt; &#x27;<span class="n">20270101</span>&#x27;
+<span class="k">GROUP</span> <span class="k">BY</span> CONVERT(CHAR(<span class="n">7</span>), b.Billing_Date, <span class="n">120</span>)
+<span class="k">ORDER</span> <span class="k">BY</span> Billing_Month;</code></pre><p class="lbl">Verified output</p><pre class="res">+-----------------+---------+------------------+-----------------+-----------------+
+| Billing_Month   | Bills   | Labour_Revenue   | Parts_Revenue   | Total_Revenue   |
++=================+=========+==================+=================+=================+
+| 2026-01         | 2       | 262.09           | 568.63          | 830.72          |
++-----------------+---------+------------------+-----------------+-----------------+
+| 2026-02         | 4       | 1001.07          | 824.70          | 1825.77         |
++-----------------+---------+------------------+-----------------+-----------------+
+| 2026-03         | 8       | 1550.03          | 1004.65         | 2554.68         |
++-----------------+---------+------------------+-----------------+-----------------+
+| 2026-04         | 4       | 525.34           | 1241.36         | 1766.70         |
++-----------------+---------+------------------+-----------------+-----------------+
+| 2026-05         | 3       | 514.58           | 246.08          | 760.66          |
++-----------------+---------+------------------+-----------------+-----------------+
+| 2026-06         | 7       | 1738.77          | 1230.21         | 2968.98         |
++-----------------+---------+------------------+-----------------+-----------------+
+| 2026-07         | 3       | 611.67           | 377.00          | 988.67          |
++-----------------+---------+------------------+-----------------+-----------------+
+| 2026-08         | 7       | 690.41           | 627.30          | 1317.71         |
++-----------------+---------+------------------+-----------------+-----------------+
+| 2026-09         | 2       | 157.92           | 287.70          | 445.62          |
++-----------------+---------+------------------+-----------------+-----------------+
+9 row(s).</pre></details>
+<details class="pq"><summary>P8. Approved warranty claims as a percentage of all submitted claims.</summary><pre class="sql"><code><span class="k">SELECT</span> dt.Manufacturer_Name, <span class="k">COUNT</span>(*) <span class="k">AS</span> Total_Claims,
+       <span class="k">SUM</span>(<span class="k">CASE</span> <span class="k">WHEN</span> wc.Review_Status = &#x27;Approved&#x27; <span class="k">THEN</span> <span class="n">1</span> <span class="k">ELSE</span> <span class="n">0</span> <span class="k">END</span>) <span class="k">AS</span> Approved,
+       <span class="k">CAST</span>(<span class="n">100.0</span> * <span class="k">SUM</span>(<span class="k">CASE</span> <span class="k">WHEN</span> wc.Review_Status = &#x27;Approved&#x27; <span class="k">THEN</span> <span class="n">1</span> <span class="k">ELSE</span> <span class="n">0</span> <span class="k">END</span>)
+            / <span class="k">COUNT</span>(*) <span class="k">AS</span> <span class="k">DECIMAL</span>(<span class="n">6</span>,<span class="n">2</span>)) <span class="k">AS</span> Approval_Rate_Percent
+<span class="k">FROM</span> WARRANTY_CLAIM wc
+<span class="k">JOIN</span> BILLING_STATEMENT b <span class="k">ON</span> b.Bill_ID = wc.Bill_ID
+<span class="k">JOIN</span> SERVICE_TICKET st <span class="k">ON</span> st.Service_Ticket_ID = b.Service_Ticket_ID
+<span class="k">JOIN</span> DEVICE d <span class="k">ON</span> d.Device_ID = st.Device_ID
+<span class="k">JOIN</span> DEVICE_TYPE dt <span class="k">ON</span> dt.Model_ID = d.Model_ID
+<span class="k">GROUP</span> <span class="k">BY</span> dt.Manufacturer_Name
+<span class="k">ORDER</span> <span class="k">BY</span> Approval_Rate_Percent <span class="k">DESC</span>, dt.Manufacturer_Name;</code></pre><p class="lbl">Verified output</p><pre class="res">+---------------------+----------------+------------+-------------------------+
+| Manufacturer_Name   | Total_Claims   | Approved   | Approval_Rate_Percent   |
++=====================+================+============+=========================+
+| Bose                | 1              | 1          | 100.00                  |
++---------------------+----------------+------------+-------------------------+
+| Apple               | 4              | 3          | 75.00                   |
++---------------------+----------------+------------+-------------------------+
+| Samsung             | 4              | 3          | 75.00                   |
++---------------------+----------------+------------+-------------------------+
+| Sony                | 4              | 2          | 50.00                   |
++---------------------+----------------+------------+-------------------------+
+| Google              | 1              | 0          | 0.00                    |
++---------------------+----------------+------------+-------------------------+
+| Xiaomi              | 1              | 0          | 0.00                    |
++---------------------+----------------+------------+-------------------------+
+6 row(s).</pre></details>
+<details class="pq"><summary>Devices with more than one service ticket.</summary><pre class="sql"><code><span class="k">SELECT</span> d.Device_ID, d.IMEI_Serial_No, c.Name <span class="k">AS</span> Client_Name,
+       <span class="k">COUNT</span>(*) <span class="k">AS</span> Ticket_Count
+<span class="k">FROM</span> DEVICE d
+<span class="k">JOIN</span> CLIENT c <span class="k">ON</span> c.Client_ID = d.Client_ID
+<span class="k">JOIN</span> SERVICE_TICKET st <span class="k">ON</span> st.Device_ID = d.Device_ID
+<span class="k">GROUP</span> <span class="k">BY</span> d.Device_ID, d.IMEI_Serial_No, c.Name
+<span class="k">HAVING</span> <span class="k">COUNT</span>(*) &gt; <span class="n">1</span>
+<span class="k">ORDER</span> <span class="k">BY</span> Ticket_Count <span class="k">DESC</span>, d.Device_ID;</code></pre><p class="lbl">Verified output</p><pre class="res">+-------------+------------------+---------------+----------------+
+| Device_ID   | IMEI_Serial_No   | Client_Name   | Ticket_Count   |
++=============+==================+===============+================+
+| 1           | 355834859800674  | Tan Wei Ming  | 2              |
++-------------+------------------+---------------+----------------+
+| 2           | HP0862776071     | Tan Wei Ming  | 2              |
++-------------+------------------+---------------+----------------+
+| 7           | 358119327905235  | Lim Jia Hui   | 2              |
++-------------+------------------+---------------+----------------+
+| 17          | 352443723599973  | Nur Hidayah   | 2              |
++-------------+------------------+---------------+----------------+
+| 20          | 355690668435121  | Sophie Ong    | 2              |
++-------------+------------------+---------------+----------------+
+| 24          | 357145848158667  | Hannah Goh    | 2              |
++-------------+------------------+---------------+----------------+
+6 row(s).</pre></details>
+<details class="pq"><summary>Technicians with sessions who never worked outside their specialisation.</summary><pre class="sql"><code><span class="k">SELECT</span> t.Technician_ID, t.Name, t.Primary_Specialisation,
+       <span class="k">COUNT</span>(*) <span class="k">AS</span> Sessions
+<span class="k">FROM</span> TECHNICIAN t
+<span class="k">JOIN</span> WORK_SESSION ws <span class="k">ON</span> ws.Technician_ID = t.Technician_ID
+<span class="k">JOIN</span> REPAIR_PROCEDURE rp <span class="k">ON</span> rp.Procedure_ID = ws.Procedure_ID
+<span class="k">GROUP</span> <span class="k">BY</span> t.Technician_ID, t.Name, t.Primary_Specialisation
+<span class="k">HAVING</span> <span class="k">SUM</span>(<span class="k">CASE</span> <span class="k">WHEN</span> t.Primary_Specialisation &lt;&gt; rp.Procedure_Type
+                <span class="k">THEN</span> <span class="n">1</span> <span class="k">ELSE</span> <span class="n">0</span> <span class="k">END</span>) = <span class="n">0</span>
+<span class="k">ORDER</span> <span class="k">BY</span> t.Technician_ID;</code></pre><p class="lbl">Verified output</p><pre class="res">+-----------------+---------------+--------------------------+------------+
+| Technician_ID   | Name          | Primary_Specialisation   | Sessions   |
++=================+===============+==========================+============+
+| 2               | Bernice Yeo   | Display                  | 9          |
++-----------------+---------------+--------------------------+------------+
+| 4               | Dinesh Nair   | Battery                  | 11         |
++-----------------+---------------+--------------------------+------------+
+| 6               | Farhan Ismail | Audio                    | 4          |
++-----------------+---------------+--------------------------+------------+
+| 7               | Grace Tham    | Audio                    | 4          |
++-----------------+---------------+--------------------------+------------+
+| 8               | Henry Low     | Logic Board              | 8          |
++-----------------+---------------+--------------------------+------------+
+| 9               | Ivy Sim       | Logic Board              | 4          |
++-----------------+---------------+--------------------------+------------+
+6 row(s).</pre></details>
+<details class="pq"><summary>Busiest workstation by total assigned tickets; retain tied leaders.</summary><pre class="sql"><code><span class="k">SELECT</span> <span class="k">TOP</span> (<span class="n">1</span>) <span class="k">WITH</span> <span class="k">TIES</span> w.Workstation_ID, w.Workstation_Type,
+       <span class="k">COUNT</span>(st.Service_Ticket_ID) <span class="k">AS</span> Tickets
+<span class="k">FROM</span> WORKSTATION w
+<span class="k">LEFT</span> <span class="k">JOIN</span> SERVICE_TICKET st <span class="k">ON</span> st.Workstation_ID = w.Workstation_ID
+<span class="k">GROUP</span> <span class="k">BY</span> w.Workstation_ID, w.Workstation_Type
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="k">COUNT</span>(st.Service_Ticket_ID) <span class="k">DESC</span>;</code></pre><p class="lbl">Verified output</p><pre class="res">+------------------+-----------------------+-----------+
+| Workstation_ID   | Workstation_Type      | Tickets   |
++==================+=======================+===========+
+| 1                | ESD-Safe Mobile Bench | 20        |
++------------------+-----------------------+-----------+
+1 row(s).</pre></details>
+</section>
+
+<footer>
+  TEL3 Team 3 · SC2207 Introduction to Databases, NTU · Structure adapted from <a href="https://github.com/maxwellau2/SC2207-Lab5-AutoMigrate">maxwellau2/SC2207-Lab5-AutoMigrate</a>. Page built by <code>tools/build_site.py</code> from the repo's SQL and exported outputs.
+</footer>
+</main>
+</div>
+</body>
+</html>
