@@ -1,0 +1,92 @@
+{
+  "verified_at_singapore": "2026-10-24T20:04:11.799993+08:00",
+  "server": "10.96.189.36",
+  "database": "tel3g3",
+  "engine": "Microsoft SQL Server 2022 RTM 16.0.1000.6",
+  "schema_or_query_sql_changes": [],
+  "fix_commit": "815cd540646ddf5ab0223d87d89e640a3ef0c112",
+  "seed_baseline_counts": {
+    "SERVICE_TICKET": 45,
+    "WORK_SESSION": 70,
+    "PART_ALLOCATION": 46,
+    "BILLING_STATEMENT": 40,
+    "WARRANTY_CLAIM": 15
+  },
+  "checks": {
+    "q1_10_rows": true,
+    "q1_no_station_3": true,
+    "q1_station1_smartphone_10": true,
+    "q2_5_rows": true,
+    "q2_smartphone_totals": true,
+    "q3_7_rows": true,
+    "q3_priya_counts": true,
+    "q4_6_rows": true,
+    "q4_rajesh_280": true,
+    "q6_2_rows": true,
+    "q6_customers": true,
+    "a1_40_rows_all_Y": true,
+    "a3_15_rows_all_Y": true,
+    "SERVICE_TICKET_count": true,
+    "WORK_SESSION_count": true,
+    "BILLING_STATEMENT_count": true,
+    "WARRANTY_CLAIM_count": true,
+    "q5_initial_stock_3_restricted": true,
+    "q5_allowed_allowed_blocked": true,
+    "q5_expected_retail_error": true,
+    "q5_final_ids_9001_9002": true,
+    "q5_final_stock_1": true,
+    "q5_post_demo_allocations_48": true
+  },
+  "video_durations_seconds": {
+    "Q1": 17.96,
+    "Q2": 17.88,
+    "Q3": 17.84,
+    "Q4": 17.84,
+    "Q5": 22.16,
+    "Q6": 17.84,
+    "Q7": 18.72,
+    "Q8": 17.92,
+    "Q9": 20.08,
+    "Q10": 17.84,
+    "Q11": 17.84,
+    "Q12": 17.92,
+    "Q13": 17.84,
+    "Q14": 17.96,
+    "Q15": 17.8,
+    "Q16": 17.84,
+    "Q17": 17.88
+  },
+  "practice_result_row_counts": {
+    "practice_01": 1,
+    "practice_02": 2,
+    "practice_03": 0,
+    "practice_04": 5,
+    "practice_05": 1,
+    "practice_06": 8,
+    "practice_07": 9,
+    "practice_08": 6
+  },
+  "output_differences_from_expected": [],
+  "pending_human_step": "Replace Appendix C placeholder with a scanned, physically signed form before submission.",
+  "artifacts": {
+    "Lab5_Demo_Prep.pdf": {
+      "bytes": 95097,
+      "sha256": "14d26cf5efc27393716dbd4c721e9e454de75acbe4b8ed5f36276d9eaa48dccd",
+      "pages": 13
+    },
+    "Appendix_C_Lab5_print.pdf": {
+      "bytes": 67146,
+      "sha256": "e25942667b2da98b7506245f0dbef3885270ec2c6e16c073056f7d30bf6dab54",
+      "pages": 1
+    },
+    "Lab5_TEL3_Team3.pdf": {
+      "bytes": 218376,
+      "sha256": "b6dbab0a6943cbbb0f1cbc6470ad0b992b2eaca72cfa852f7450ef56c6b8cb6e",
+      "pages": 73
+    },
+    "Lab5_TEL3_Team3.zip": {
+      "bytes": 10787570,
+      "sha256": "688432f43ab2054754381ead94b38d01493c616ba312a86a9e0c1182a58fcbf7"
+    }
+  }
+}

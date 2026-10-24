@@ -6,3 +6,8 @@ outputs/
 *.mp4
 .vscode/
 .idea/
+
+/backups/
+/tmp/
+/output/
+*.webm
