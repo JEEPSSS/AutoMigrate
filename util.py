@@ -62,15 +62,21 @@ def fetch_file(path: str):
 def try_execute_file(path: str):
     """Run a script that may be blocked by a trigger. Returns (ok, messages_or_error)."""
     conn = get_connection()
+    cur = None
     try:
         cur = conn.cursor()
         cur.execute(read_sql(path))
         msgs = [m[1] for m in (cur.messages or [])]
         while cur.nextset():
             msgs += [m[1] for m in (cur.messages or [])]
-        cur.close()
         return True, msgs
     except pyodbc.Error as e:
         return False, [str(e)]
     finally:
-        conn.close()
+        # A trigger error may leave unread results on the cursor. Close it before
+        # returning the connection to ODBC's pool, including on the expected fail.
+        try:
+            if cur is not None:
+                cur.close()
+        finally:
+            conn.close()
