@@ -1,0 +1,7 @@
+{
+  "recommendations": [
+    "ms-mssql.mssql",
+    "ms-python.python",
+    "ms-dotnettools.vscode-dotnet-runtime"
+  ]
+}

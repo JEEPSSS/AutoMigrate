@@ -4,7 +4,10 @@ __pycache__/
 config.py
 outputs/
 *.mp4
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/extensions.json
 .idea/
 
 /backups/

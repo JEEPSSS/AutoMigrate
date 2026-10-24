@@ -1,0 +1,194 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Demo all queries",
+      "type": "process",
+      "command": "${workspaceFolder}/venv/bin/python",
+      "args": [
+        "${workspaceFolder}/run.py",
+        "demo"
+      ],
+      "windows": {
+        "command": "${workspaceFolder}\\venv\\Scripts\\python.exe"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Q1",
+      "type": "process",
+      "command": "${workspaceFolder}/venv/bin/python",
+      "args": [
+        "${workspaceFolder}/run.py",
+        "q1"
+      ],
+      "windows": {
+        "command": "${workspaceFolder}\\venv\\Scripts\\python.exe"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Q2",
+      "type": "process",
+      "command": "${workspaceFolder}/venv/bin/python",
+      "args": [
+        "${workspaceFolder}/run.py",
+        "q2"
+      ],
+      "windows": {
+        "command": "${workspaceFolder}\\venv\\Scripts\\python.exe"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Q3",
+      "type": "process",
+      "command": "${workspaceFolder}/venv/bin/python",
+      "args": [
+        "${workspaceFolder}/run.py",
+        "q3"
+      ],
+      "windows": {
+        "command": "${workspaceFolder}\\venv\\Scripts\\python.exe"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Q4",
+      "type": "process",
+      "command": "${workspaceFolder}/venv/bin/python",
+      "args": [
+        "${workspaceFolder}/run.py",
+        "q4"
+      ],
+      "windows": {
+        "command": "${workspaceFolder}\\venv\\Scripts\\python.exe"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Q5",
+      "type": "process",
+      "command": "${workspaceFolder}/venv/bin/python",
+      "args": [
+        "${workspaceFolder}/run.py",
+        "q5"
+      ],
+      "windows": {
+        "command": "${workspaceFolder}\\venv\\Scripts\\python.exe"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Q6",
+      "type": "process",
+      "command": "${workspaceFolder}/venv/bin/python",
+      "args": [
+        "${workspaceFolder}/run.py",
+        "q6"
+      ],
+      "windows": {
+        "command": "${workspaceFolder}\\venv\\Scripts\\python.exe"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Reset database",
+      "type": "process",
+      "command": "${workspaceFolder}/venv/bin/python",
+      "args": [
+        "${workspaceFolder}/run.py",
+        "reset"
+      ],
+      "windows": {
+        "command": "${workspaceFolder}\\venv\\Scripts\\python.exe"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Export outputs",
+      "type": "process",
+      "command": "${workspaceFolder}/venv/bin/python",
+      "args": [
+        "${workspaceFolder}/run.py",
+        "export"
+      ],
+      "windows": {
+        "command": "${workspaceFolder}\\venv\\Scripts\\python.exe"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}

@@ -24,7 +24,7 @@ Structure and workflow are adapted from [maxwellau2/SC2207-Lab5-AutoMigrate](htt
    - Windows: Microsoft's installer.
    - Ubuntu/WSL: [Microsoft's guide](https://learn.microsoft.com/en-us/sql/connect/odbc/linux-mac/installing-the-microsoft-odbc-driver-for-sql-server).
    - macOS: `brew install msodbcsql17`.
-3. **Config:** `cp config.example.py config.py` and fill in the team login and password. `config.py` is git-ignored, so never commit the password.
+3. **Config:** the runner creates ignored `config.py` from `config.example.py` when needed. Enter the shared SQL password at the hidden terminal prompt; it is not written to any file. You can also supply `TECHPULSE_SQL_PASSWORD` in the process environment.
 4. **Python env:**
    ```bash
    python -m venv venv
@@ -63,3 +63,18 @@ python run.py export     # also writes outputs/*.csv, outputs/results.md, output
 - **Q5:** corporate and warranty allocations are ALLOWED, the retail one is BLOCKED, and BAT-IP15 stock goes 3 → 1.
 - **Q6:** Northwind (Smartphone, 03/2026) and Harbourfront (Tablet, 06/2026).
 - **A1 / A3:** all rows show `Y`.
+
+## Live demo on macOS
+
+Start with [docs/DEMO_DAY.md](docs/DEMO_DAY.md): official MSSQL extension setup, named connection, presenter order, VPN/campus plan, SSMS fallback and TA questions. Open `demo/Q1.sql` through `demo/Q6.sql` and use **Cmd+Shift+E**. For reliable Q5 error/result handling, run **Q5a -> Q5b -> Q5c**.
+
+```bash
+python run.py demo              # SQL + results; Enter between queries
+python run.py demo --dry-run    # rollback-only Q5 rehearsal
+python run.py q3
+python run.py sql "SELECT COUNT(*) AS Tickets FROM SERVICE_TICKET;"
+python run.py sql demo/EXTRA_scratch.sql
+python run.py reset             # destructive; requires RESET tel3g3
+```
+
+Ten executed practice solutions and their outputs are in `demo/practice/`. VS Code/Antigravity tasks provide Demo all queries, Run Q1-Q6, Reset database, and Export outputs. Password-free workspace settings and extension recommendations are tracked; local credentials remain excluded.

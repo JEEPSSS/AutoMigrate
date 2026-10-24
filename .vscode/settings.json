@@ -1,0 +1,40 @@
+{
+  "editor.fontSize": 18,
+  "editor.lineHeight": 27,
+  "editor.wordWrap": "on",
+  "editor.minimap.enabled": false,
+  "terminal.integrated.fontSize": 17,
+  "mssql.resultsFontSize": 18,
+  "mssql.resultsFontFamily": "Menlo",
+  "mssql.resultsGrid.autoSizeColumnsMode": "headersAndData",
+  "mssql.resultsGrid.alternatingRowColors": true,
+  "mssql.resultsGrid.rowPadding": 6,
+  "mssql.connections": [
+    {
+      "profileName": "TechPulse tel3g3",
+      "server": "10.96.189.36",
+      "database": "tel3g3",
+      "user": "tel3g3",
+      "authenticationType": "SqlLogin",
+      "encrypt": "Mandatory",
+      "trustServerCertificate": true,
+      "savePassword": false,
+      "id": "95abc930-304e-5336-b6c2-439c08e85cc6",
+      "groupId": "ROOT"
+    }
+  ],
+  "files.exclude": {
+    "**/__pycache__": true,
+    "venv": true,
+    "backups": true,
+    "output": true,
+    "outputs": true
+  },
+  "python.defaultInterpreterPath": "${workspaceFolder}/venv/bin/python",
+  "mssql.connectionGroups": [
+    {
+      "name": "ROOT",
+      "id": "ROOT"
+    }
+  ]
+}
