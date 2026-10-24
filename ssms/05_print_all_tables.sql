@@ -1,0 +1,18 @@
+/* SC2207 Lab 5 - TEL3 Team 3 - 05_print_all_tables.sql : printout of all table records */
+SELECT * FROM CLIENT                ORDER BY Client_ID;
+SELECT * FROM DEVICE_TYPE           ORDER BY Model_ID;
+SELECT * FROM DEVICE                ORDER BY Device_ID;
+SELECT * FROM WORKSTATION           ORDER BY Workstation_ID;
+SELECT * FROM TECHNICIAN            ORDER BY Technician_ID;
+SELECT * FROM SERVICE_TICKET        ORDER BY Service_Ticket_ID;
+SELECT * FROM DIAGNOSTIC_ASSESSMENT ORDER BY Assessment_ID;
+SELECT * FROM REPAIR_PROCEDURE      ORDER BY Procedure_ID;
+SELECT * FROM WORK_SESSION          ORDER BY Session_ID;
+SELECT * FROM PART                  ORDER BY Part_Code;
+SELECT * FROM PART_ALLOCATION       ORDER BY Allocated_ID, Procedure_ID;
+SELECT * FROM VENDOR                ORDER BY Vendor_ID;
+SELECT * FROM PURCHASE_ORDER        ORDER BY Order_ID;
+SELECT * FROM RESTOCK_REQUEST       ORDER BY Req_ID;
+SELECT * FROM CREATES               ORDER BY Order_ID, Req_ID;
+SELECT * FROM BILLING_STATEMENT     ORDER BY Bill_ID;
+SELECT * FROM WARRANTY_CLAIM        ORDER BY Claim_ID;

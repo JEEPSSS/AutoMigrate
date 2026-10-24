@@ -1,0 +1,135 @@
+/* =====================================================================
+   SC2207 Lab 5 - TEL3 Team 3 - 04_q5_trigger_demo.sql   (Appendix B Q5)
+   Rule: if a part's stock is below 20% of its minimum reorder threshold,
+         remaining units may only be allocated to Corporate clients' jobs
+         or Warranty rework jobs. Retail jobs are blocked.
+   The trigger also enforces the "locked-in price" rule: the unit price
+   stored on the allocation is copied from PART.Selling_Price at the
+   moment of allocation (whatever price the INSERT supplies is ignored).
+   Script is re-runnable: the SETUP batch resets the demo state.
+   ===================================================================== */
+
+/* ---------- 1. Trigger (run once; CREATE OR ALTER makes it re-runnable) ---------- */
+CREATE OR ALTER TRIGGER trg_PartAllocation_Guard
+ON PART_ALLOCATION
+INSTEAD OF INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Rule check: critically low part requested by a job that is neither corporate nor warranty
+    IF EXISTS (
+        SELECT 1
+        FROM inserted i
+        JOIN PART p             ON p.Part_Code = i.Part_Code
+        JOIN REPAIR_PROCEDURE rp ON rp.Procedure_ID = i.Procedure_ID
+        JOIN SERVICE_TICKET st  ON st.Service_Ticket_ID = rp.Service_Ticket_ID
+        JOIN DEVICE d           ON d.Device_ID = st.Device_ID
+        JOIN CLIENT c           ON c.Client_ID = d.Client_ID
+        WHERE p.Current_Quantity < 0.2 * p.Minimum_Reorder_Quantity
+          AND c.Type <> 'Corporate'
+          AND st.Warranty_Claim_ID IS NULL
+    )
+    BEGIN
+        RAISERROR('ALLOCATION BLOCKED: stock is below 20%% of the reorder threshold. Remaining units are reserved for Corporate or Warranty jobs.', 16, 1);
+        ROLLBACK TRANSACTION;
+        RETURN;
+    END
+
+    -- Basic stock check
+    IF EXISTS (SELECT 1 FROM inserted i JOIN PART p ON p.Part_Code = i.Part_Code
+               WHERE i.Quantity_Allocated > p.Current_Quantity)
+    BEGIN
+        RAISERROR('ALLOCATION BLOCKED: insufficient stock on hand.', 16, 1);
+        ROLLBACK TRANSACTION;
+        RETURN;
+    END
+
+    -- Allowed: insert with the price locked in from the catalogue right now
+    INSERT INTO PART_ALLOCATION (Allocated_ID, Procedure_ID, Quantity_Allocated,
+                                 Locked_Unit_Price, Allocated_Time, Part_Code)
+    SELECT i.Allocated_ID, i.Procedure_ID, i.Quantity_Allocated,
+           p.Selling_Price, COALESCE(i.Allocated_Time, GETDATE()), i.Part_Code
+    FROM inserted i
+    JOIN PART p ON p.Part_Code = i.Part_Code;
+
+    -- Deduct stock
+    UPDATE p
+    SET p.Current_Quantity = p.Current_Quantity - x.Qty
+    FROM PART p
+    JOIN (SELECT Part_Code, SUM(Quantity_Allocated) AS Qty
+          FROM inserted GROUP BY Part_Code) x ON x.Part_Code = p.Part_Code;
+
+    PRINT 'ALLOCATION ALLOWED: part allocated and stock deducted.';
+END;
+GO
+
+/* ---------- 2. SETUP: reset demo state (safe to re-run) ---------- */
+DELETE FROM PART_ALLOCATION WHERE Allocated_ID >= 9000;
+UPDATE PART SET Current_Quantity = 3 WHERE Part_Code = 'BAT-IP15';
+GO
+
+/* ---------- 3. DATA CHECKS ---------- */
+-- 3a. BAT-IP15 is below 20% of its reorder threshold (3 < 0.2 x 20 = 4)
+SELECT Part_Code, Item_Description, Current_Quantity, Minimum_Reorder_Quantity,
+       0.2 * Minimum_Reorder_Quantity AS Restricted_Below,
+       CASE WHEN Current_Quantity < 0.2 * Minimum_Reorder_Quantity
+            THEN 'RESTRICTED' ELSE 'OPEN' END AS Stock_Status
+FROM PART
+WHERE Part_Code = 'BAT-IP15';
+
+-- 3b. Three open iPhone 15 Pro battery jobs and whether each may draw from restricted stock
+SELECT st.Service_Ticket_ID, rp.Procedure_ID, c.Name AS Client_Name, c.Type AS Client_Type,
+       st.Warranty_Claim_ID,
+       CASE WHEN c.Type = 'Corporate' THEN 'ALLOWED (Corporate)'
+            WHEN st.Warranty_Claim_ID IS NOT NULL THEN 'ALLOWED (Warranty)'
+            ELSE 'BLOCKED (Retail)' END AS Expected_Result
+FROM SERVICE_TICKET st
+JOIN REPAIR_PROCEDURE rp ON rp.Service_Ticket_ID = st.Service_Ticket_ID
+JOIN DEVICE d            ON d.Device_ID = st.Device_ID
+JOIN CLIENT c            ON c.Client_ID = d.Client_ID
+WHERE st.Status = 'In Progress' AND rp.Procedure_Type = 'Battery'
+ORDER BY st.Service_Ticket_ID;
+GO
+
+/* ---------- 4a. SUCCESS scenario: corporate job (Northwind Logistics) ---------- */
+INSERT INTO PART_ALLOCATION (Allocated_ID, Procedure_ID, Quantity_Allocated, Locked_Unit_Price, Allocated_Time, Part_Code)
+SELECT 9001, rp.Procedure_ID, 1, 0.00 /* placeholder - trigger locks catalogue price */, GETDATE(), 'BAT-IP15'
+FROM REPAIR_PROCEDURE rp
+JOIN SERVICE_TICKET st ON st.Service_Ticket_ID = rp.Service_Ticket_ID
+JOIN DEVICE d          ON d.Device_ID = st.Device_ID
+JOIN CLIENT c          ON c.Client_ID = d.Client_ID
+WHERE st.Status = 'In Progress' AND rp.Procedure_Type = 'Battery' AND c.Type = 'Corporate';
+GO
+
+/* ---------- 4b. SUCCESS scenario: warranty rework job ---------- */
+INSERT INTO PART_ALLOCATION (Allocated_ID, Procedure_ID, Quantity_Allocated, Locked_Unit_Price, Allocated_Time, Part_Code)
+SELECT 9002, rp.Procedure_ID, 1, 0.00, GETDATE(), 'BAT-IP15'
+FROM REPAIR_PROCEDURE rp
+JOIN SERVICE_TICKET st ON st.Service_Ticket_ID = rp.Service_Ticket_ID
+WHERE st.Status = 'In Progress' AND rp.Procedure_Type = 'Battery' AND st.Warranty_Claim_ID IS NOT NULL;
+GO
+
+/* ---------- 4c. FAIL scenario: standard retail job (expect error message) ---------- */
+INSERT INTO PART_ALLOCATION (Allocated_ID, Procedure_ID, Quantity_Allocated, Locked_Unit_Price, Allocated_Time, Part_Code)
+SELECT 9003, rp.Procedure_ID, 1, 0.00, GETDATE(), 'BAT-IP15'
+FROM REPAIR_PROCEDURE rp
+JOIN SERVICE_TICKET st ON st.Service_Ticket_ID = rp.Service_Ticket_ID
+JOIN DEVICE d          ON d.Device_ID = st.Device_ID
+JOIN CLIENT c          ON c.Client_ID = d.Client_ID
+WHERE st.Status = 'In Progress' AND rp.Procedure_Type = 'Battery'
+  AND c.Type = 'Retail' AND st.Warranty_Claim_ID IS NULL;
+GO
+
+/* ---------- 5. RESULT: 9001 and 9002 exist, 9003 does not; stock went 3 -> 1 ---------- */
+SELECT pa.Allocated_ID, pa.Procedure_ID, rp.Service_Ticket_ID, c.Name AS Client_Name, c.Type,
+       pa.Part_Code, pa.Quantity_Allocated, pa.Locked_Unit_Price
+FROM PART_ALLOCATION pa
+JOIN REPAIR_PROCEDURE rp ON rp.Procedure_ID = pa.Procedure_ID
+JOIN SERVICE_TICKET st   ON st.Service_Ticket_ID = rp.Service_Ticket_ID
+JOIN DEVICE d            ON d.Device_ID = st.Device_ID
+JOIN CLIENT c            ON c.Client_ID = d.Client_ID
+WHERE pa.Allocated_ID >= 9000;
+
+SELECT Part_Code, Current_Quantity FROM PART WHERE Part_Code = 'BAT-IP15';
+GO
