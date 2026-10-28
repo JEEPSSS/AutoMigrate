@@ -4,7 +4,7 @@ Database for **TechPulse**, an authorised mobile-device repair centre (SC2207 La
 
 Structure and workflow are adapted from [maxwellau2/SC2207-Lab5-AutoMigrate](https://github.com/maxwellau2/SC2207-Lab5-AutoMigrate): one SQL file per table and per seed, plus Python scripts that wipe, create, seed and query the database in one go.
 
-New to the project? Start with the [simple VS Code guide for Mac](docs/VS_CODE_SIMPLE_GUIDE.md): what to click, what to type, and what each command, folder and query means.
+New to the project? Start with the [simple VS Code guide for Mac and Windows](docs/VS_CODE_SIMPLE_GUIDE.md): what to click, what to type, and what each command, folder and query means.
 
 ## Layout
 
